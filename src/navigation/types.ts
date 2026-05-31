@@ -1,33 +1,46 @@
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { CompositeNavigationProp, NavigatorScreenParams } from '@react-navigation/native';
+import { NavigatorScreenParams } from '@react-navigation/native';
 
 export type AuthStackParamList = {
   LanguageConsent: undefined;
   Login: undefined;
-};
-
-export type MainTabsParamList = {
-  HomeTab: undefined;
-  AssessTab: undefined;
-  ResourcesTab: undefined;
-  ProfileTab: undefined;
+  ConsentPrivacy: undefined;
+  RegisterProfile: undefined;
 };
 
 export type HomeStackParamList = {
-  Home: undefined;
-  DoctorDiscovery: undefined;
-  Booking: undefined;
+  HomeDashboard: undefined;
+  CrisisSafety: undefined;
 };
 
-export type AssessStackParamList = {
-  MoodAnalyzer: undefined;
-  AnalyzerResults: { score: number };
+export type ExploreStackParamList = {
+  MoodBucket: undefined;
+  AssessmentQuestions: { bucketId: string; bucketTitle: string };
+  ResultsCheckIn: { score: number };
+  ResourceBank: undefined;
+};
+
+export type BookStackParamList = {
+  DoctorList: undefined;
+  DoctorProfile: { doctorId: string };
+  SlotBookingPayment: { doctorId: string };
+  BookingConfirmed: { doctorName: string; slot: string };
+};
+
+export type SessionsStackParamList = {
+  MySessions: undefined;
+  InSessionVideoCall: { sessionId: string };
+  AfterSession: { sessionId: string };
+};
+
+export type MainTabsParamList = {
+  HomeTab: NavigatorScreenParams<HomeStackParamList>;
+  ExploreTab: NavigatorScreenParams<ExploreStackParamList>;
+  BookTab: NavigatorScreenParams<BookStackParamList>;
+  SessionsTab: NavigatorScreenParams<SessionsStackParamList>;
+  ProfileTab: undefined;
 };
 
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabsParamList>;
 };
-
-// Define screen props globally or use inline in components

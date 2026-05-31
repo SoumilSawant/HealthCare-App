@@ -16,31 +16,19 @@ export const Card: React.FC<CardProps> = ({
 }) => {
   const Component = onPress ? TouchableOpacity : View;
 
-  const getVariantStyles = () => {
-    switch (variant) {
-      case 'elevated':
-        return layout.shadowSubtle;
-      case 'outline':
-        return {
-          borderWidth: 1,
-          borderColor: colors.border,
-        };
-      case 'flat':
-      default:
-        return {};
-    }
-  };
+  const variantStyles =
+    variant === 'elevated'
+      ? layout.shadowSubtle
+      : variant === 'outline'
+        ? { borderWidth: 1, borderColor: colors.border }
+        : {};
 
   return (
     <Component
-      style={[
-        styles.container,
-        getVariantStyles(),
-        style,
-      ]}
-      activeOpacity={onPress ? 0.8 : 1}
+      style={[styles.container, variantStyles, style]}
+      activeOpacity={onPress ? 0.85 : 1}
       onPress={onPress}
-      {...props as any}
+      {...(props as any)}
     >
       {children}
     </Component>
