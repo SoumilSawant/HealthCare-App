@@ -5,6 +5,9 @@ import { CompositeNavigationProp, NavigatorScreenParams } from '@react-navigatio
 export type AuthStackParamList = {
   LanguageConsent: undefined;
   Login: undefined;
+  Signup: undefined;
+  Consent: { mobileNumber: string; verified?: boolean };
+  Profile: { mobileNumber: string };
 };
 
 export type MainTabsParamList = {
