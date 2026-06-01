@@ -11,10 +11,11 @@ export const ConsentScreen: React.FC<Props> = ({ navigation, route }) => {
   const [consent1, setConsent1] = useState(false);
   const [consent2, setConsent2] = useState(false);
   const mobileNumber = route.params?.mobileNumber || '';
+  const password = route.params?.password || '';
 
   const handleContinue = () => {
     if (consent1 && consent2) {
-      navigation.navigate('Profile', { mobileNumber });
+      navigation.navigate('Profile', { mobileNumber, password });
     }
   };
 

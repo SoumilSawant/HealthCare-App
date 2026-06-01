@@ -1,9 +1,10 @@
 /**
- * Frappe API Service for Soul Place Patient App
- * Handles authentication and user management
+ * Frappe API Service for Soul Place Patient App (password-only)
  */
 
-const FRAPPE_BASE_URL = process.env.REACT_APP_FRAPPE_URL || 'http://localhost:8000';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const FRAPPE_BASE_URL = process.env.EXPO_PUBLIC_FRAPPE_URL || process.env.REACT_APP_FRAPPE_URL || 'http://localhost:8000';
 
 interface FrappeResponse<T> {
   message: T;
@@ -16,106 +17,43 @@ interface AuthResponse {
   full_name: string;
 }
 
-interface OtpResponse {
-  otp_id: string;
-  message: string;
+interface LocalAccount {
+  mobileNumber: string;
+  password: string;
+  fullName: string;
 }
 
 class FrappeAuthService {
-  /**
-   * Send OTP to mobile number
-   */
-  static async sendOtp(mobileNumber: string): Promise<OtpResponse> {
-    try {
-      const response = await fetch(`${FRAPPE_BASE_URL}/api/method/soul_place.auth.send_otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Frappe-CSRF-Token': await this.getCsrfToken(),
-        },
-        body: JSON.stringify({
-          mobile_number: mobileNumber,
-        }),
-      });
+  private static readonly ACCOUNT_PREFIX = '@soulplace/account/';
 
-      if (!response.ok) {
-        throw new Error(`Failed to send OTP: ${response.statusText}`);
-      }
-
-      const data: FrappeResponse<OtpResponse> = await response.json();
-      return data.message;
-    } catch (error) {
-      console.error('Error sending OTP:', error);
-      throw error;
-    }
+  private static normalizeMobileNumber(mobileNumber: string): string {
+    return mobileNumber.trim().replace(/\s+/g, '');
   }
 
-  /**
-   * Verify OTP and sign up new user
-   */
-  static async signupWithOtp(
-    mobileNumber: string,
-    otp: string,
-    userData: {
-      name: string;
-      age: number;
-      gender: string;
-      living_status: 'family' | 'alone';
-      therapy_experience: boolean;
-    }
-  ): Promise<AuthResponse> {
-    try {
-      const response = await fetch(`${FRAPPE_BASE_URL}/api/method/soul_place.auth.verify_otp_and_signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Frappe-CSRF-Token': await this.getCsrfToken(),
-        },
-        body: JSON.stringify({
-          mobile_number: mobileNumber,
-          otp,
-          user_data: userData,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Signup failed: ${response.statusText}`);
-      }
-
-      const data: FrappeResponse<AuthResponse> = await response.json();
-      return data.message;
-    } catch (error) {
-      console.error('Error during signup with OTP:', error);
-      throw error;
-    }
+  private static getAccountKey(mobileNumber: string): string {
+    return `${this.ACCOUNT_PREFIX}${this.normalizeMobileNumber(mobileNumber)}`;
   }
 
-  /**
-   * Verify OTP for login
-   */
-  static async loginWithOtp(mobileNumber: string, otp: string): Promise<AuthResponse> {
+  static async saveLocalAccount(account: LocalAccount): Promise<void> {
+    await AsyncStorage.setItem(
+      this.getAccountKey(account.mobileNumber),
+      JSON.stringify({
+        ...account,
+        mobileNumber: this.normalizeMobileNumber(account.mobileNumber),
+      }),
+    );
+  }
+
+  private static async getLocalAccount(mobileNumber: string): Promise<LocalAccount | null> {
+    const storedValue = await AsyncStorage.getItem(this.getAccountKey(mobileNumber));
+    if (!storedValue) {
+      return null;
+    }
+
     try {
-      const response = await fetch(`${FRAPPE_BASE_URL}/api/method/soul_place.auth.verify_otp_and_login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Frappe-CSRF-Token': await this.getCsrfToken(),
-        },
-        body: JSON.stringify({
-          mobile_number: mobileNumber,
-          otp,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Login failed: ${response.statusText}`);
-      }
-
-      const data: FrappeResponse<AuthResponse> = await response.json();
-      return data.message;
-    } catch (error) {
-      console.error('Error during login with OTP:', error);
-      throw error;
+      return JSON.parse(storedValue) as LocalAccount;
+    } catch {
+      return null;
     }
   }
 
@@ -123,6 +61,21 @@ class FrappeAuthService {
    * Traditional login with mobile number and password
    */
   static async loginWithPassword(mobileNumber: string, password: string): Promise<AuthResponse> {
+    const normalizedMobile = this.normalizeMobileNumber(mobileNumber);
+    const localAccount = await this.getLocalAccount(normalizedMobile);
+
+    if (localAccount) {
+      if (localAccount.password !== password) {
+        throw new Error('Incorrect password for this account.');
+      }
+
+      return {
+        user: normalizedMobile,
+        sid: `local-session-${normalizedMobile}`,
+        full_name: localAccount.fullName,
+      };
+    }
+
     try {
       const response = await fetch(`${FRAPPE_BASE_URL}/api/method/soul_place.auth.login_with_password`, {
         method: 'POST',
@@ -130,15 +83,10 @@ class FrappeAuthService {
           'Content-Type': 'application/json',
           'X-Frappe-CSRF-Token': await this.getCsrfToken(),
         },
-        body: JSON.stringify({
-          mobile_number: mobileNumber,
-          password,
-        }),
+        body: JSON.stringify({ mobile_number: normalizedMobile, password }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Login failed: ${response.statusText}`);
-      }
+      if (!response.ok) throw new Error(`Login failed: ${response.statusText}`);
 
       const data: FrappeResponse<AuthResponse> = await response.json();
       return data.message;
@@ -169,10 +117,7 @@ class FrappeAuthService {
     try {
       await fetch(`${FRAPPE_BASE_URL}/api/method/frappe.auth.logout`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Frappe-CSRF-Token': await this.getCsrfToken(),
-        },
+        headers: { 'Content-Type': 'application/json', 'X-Frappe-CSRF-Token': await this.getCsrfToken() },
       });
     } catch (error) {
       console.error('Error during logout:', error);

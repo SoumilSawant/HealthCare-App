@@ -3,29 +3,27 @@
 ## ✅ What's Been Built
 
 ### 1. **Design System** (100% Complete)
+
 - ✅ Exact color palette from HTML prototype
 - ✅ Typography system (Fraunces + Outfit fonts)
 - ✅ Spacing & layout tokens
 - ✅ Shadow & border radius specifications
 
 ### 2. **Authentication Screens** (100% Complete)
+
 - ✅ **LoginScreen** (Screen 02)
   - Password login option
-  - OTP login option
   - "Forgot password" link
   - Social login placeholders
   - Signup redirect
-  
-- ✅ **SignupScreen** (Step 1: Phone + OTP)
-  - Phone number verification
-  - OTP entry (4 digits)
-  - Progress indicator (Step 1 of 3)
-  
+- ✅ **SignupScreen** (Step 1: Phone)
+- Phone number collection
+- Progress indicator (Step 1 of 3)
+
 - ✅ **ConsentScreen** (Screen 03)
   - Privacy policy display
   - Two consent checkboxes
   - Accept/Decline buttons
-  
 - ✅ **ProfileSetupScreen** (Screen 04 - Step 1 of 3)
   - Name input
   - Age & Gender fields
@@ -35,21 +33,21 @@
   - Progress bar (33%)
 
 ### 3. **Navigation** (100% Complete)
+
 - ✅ AuthStack with all 5 screens
 - ✅ TypeScript navigation types
 - ✅ Parameter passing between screens
 - ✅ Navigation links (Login → Signup, etc.)
 
 ### 4. **API Integration Layer** (100% Complete)
+
 - ✅ FrappeAuthService with methods:
-  - `sendOtp(mobileNumber)`
-  - `signupWithOtp(mobileNumber, otp, userData)`
-  - `loginWithOtp(mobileNumber, otp)`
   - `loginWithPassword(mobileNumber, password)`
   - `logout()`
   - `getCurrentUser()`
 
 ### 5. **State Management** (100% Complete)
+
 - ✅ Enhanced AuthContext with:
   - User data storage
   - Loading state
@@ -76,6 +74,7 @@ Modified Files:
 ```
 
 ## 🎨 Design Accuracy
+
 - ✅ All colors: EXACT hex values from prototype
 - ✅ Typography: Fraunces (serif) + Outfit (sans-serif)
 - ✅ Spacing: 4px base unit system
@@ -88,6 +87,7 @@ Modified Files:
 ## 🚀 Next Steps (To Implement)
 
 ### Phase 1: Backend Setup (1-2 days)
+
 1. Create Frappe DocTypes:
    - `PatientUser` (with fields: mobile, name, age, gender, etc.)
    - `OTP` (with fields: mobile_number, code, expiry, status)
@@ -104,6 +104,7 @@ Modified Files:
    - Test OTP delivery
 
 ### Phase 2: Remaining Auth Screens (1-2 days)
+
 - [ ] ProfileSetupScreen Step 2: Health Context
 - [ ] ProfileSetupScreen Step 3: Health Information
 - [ ] Implement real Frappe API calls in SignupScreen
@@ -112,6 +113,7 @@ Modified Files:
 - [ ] Add loading states
 
 ### Phase 3: Main App Screens (3-5 days)
+
 - [ ] Screen 05: Home (mood check-in hero card, quick access)
 - [ ] Screen 06: Mood Analyzer (bucket selection)
 - [ ] Screen 07-08: Assessment Questions & Results
@@ -120,6 +122,7 @@ Modified Files:
 - [ ] Screen 13: Booking confirmation
 
 ### Phase 4: Additional Screens (3-5 days)
+
 - [ ] Screen 14: Sessions list
 - [ ] Screen 15: In-session video interface
 - [ ] Screen 16: Post-session summary
@@ -127,12 +130,14 @@ Modified Files:
 - [ ] Screen 18: User profile
 
 ### Phase 5: Integrations (2-3 days)
+
 - [ ] Payment gateway (Razorpay for India)
 - [ ] Video calling (Agora / Jitsi / AWS Chime)
 - [ ] Analytics tracking
 - [ ] Crash reporting
 
 ### Phase 6: Polish & Launch (2-3 days)
+
 - [ ] End-to-end testing
 - [ ] Error handling & edge cases
 - [ ] Performance optimization
@@ -142,6 +147,7 @@ Modified Files:
 ## 🔌 To Connect to Frappe Backend
 
 Update `.env` file:
+
 ```
 REACT_APP_FRAPPE_URL=http://your-frappe-instance:8000
 REACT_APP_API_KEY=your_api_key
@@ -151,16 +157,19 @@ REACT_APP_API_SECRET=your_api_secret
 Then update the screens to use `FrappeAuthService`:
 
 **SignupScreen example:**
+
 ```typescript
 const handleVerifyOtp = async () => {
   try {
     setLoading(true);
-    const response = await FrappeAuthService.signupWithOtp(
-      mobileNumber,
-      otp,
-      { name, age, gender, living_status: livingStatus, therapy_experience: therapyExperience }
-    );
-    navigation.navigate('Consent', { mobileNumber, verified: true });
+    const response = await FrappeAuthService.signupWithOtp(mobileNumber, otp, {
+      name,
+      age,
+      gender,
+      living_status: livingStatus,
+      therapy_experience: therapyExperience,
+    });
+    navigation.navigate("Consent", { mobileNumber, verified: true });
   } catch (error) {
     showError(error.message);
   } finally {
@@ -187,6 +196,7 @@ npm run android
 ```
 
 ## 📊 Completion Progress
+
 - Authentication Screens: ✅ 100% (4/4 screens built)
 - Navigation & State: ✅ 100%
 - API Service Layer: ✅ 100%
@@ -198,10 +208,12 @@ npm run android
 ## 📞 Quick Support
 
 **For Frappe Backend:**
+
 - Docs: https://frappeframework.com
 - Healthcare Module: https://frappe.io/healthcare
 
 **For React Native:**
+
 - Docs: https://reactnative.dev
 - Navigation: https://reactnavigation.org
 

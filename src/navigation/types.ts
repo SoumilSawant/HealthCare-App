@@ -6,14 +6,15 @@ export type AuthStackParamList = {
   LanguageConsent: undefined;
   Login: undefined;
   Signup: undefined;
-  Consent: { mobileNumber: string; verified?: boolean };
-  Profile: { mobileNumber: string };
+  Consent: { mobileNumber: string; password: string; verified?: boolean };
+  Profile: { mobileNumber: string; password: string };
 };
 
 export type MainTabsParamList = {
   HomeTab: undefined;
-  AssessTab: undefined;
-  ResourcesTab: undefined;
+  ExploreTab: undefined;
+  BookTab: undefined;
+  SessionsTab: undefined;
   ProfileTab: undefined;
 };
 

@@ -4,27 +4,33 @@ import { Typography } from '../../components/Typography';
 import { Button } from '../../components/Button';
 import { colors, spacing, layout } from '../../theme/theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AuthStackParamList } from '../../navigation/types';
 
-type Props = NativeStackScreenProps<any, 'Signup'>;
+type Props = NativeStackScreenProps<AuthStackParamList, 'Signup'>;
 
 export const SignupScreen: React.FC<Props> = ({ navigation }) => {
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [mobileNumber, setMobileNumber] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleSendOtp = () => {
-    if (mobileNumber.length > 5) {
-      setOtpSent(true);
-      // Here you would call the Frappe API to send OTP
-    }
-  };
+  const normalizeMobileNumber = (value: string) => value.trim().replace(/\s+/g, '');
 
-  const handleVerifyOtp = () => {
-    if (otp.length === 4) {
-      // Navigate to Consent screen
-      navigation.navigate('Consent', { mobileNumber, verified: true });
+  const handleContinue = () => {
+    const normalizedMobile = normalizeMobileNumber(mobileNumber);
+
+    if (normalizedMobile.length <= 5 || password.trim().length < 6) {
+      return;
     }
+
+    if (password.trim() !== confirmPassword.trim()) {
+      return;
+    }
+
+    navigation.navigate('Consent', {
+      mobileNumber: normalizedMobile,
+      password: password.trim(),
+      verified: false,
+    });
   };
 
   return (
@@ -53,104 +59,81 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
             </Typography>
           </View>
 
-          {!otpSent ? (
-            <>
-              {/* Step 1: Phone Number */}
-              <View style={styles.fieldContainer}>
-                <Typography variant="small" color={colors.inkSoft} style={styles.label}>
-                  Mobile number
-                </Typography>
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="+91 ｜ Enter your number"
-                    keyboardType="phone-pad"
-                    value={mobileNumber}
-                    onChangeText={setMobileNumber}
-                    placeholderTextColor={colors.inkFaint}
-                    autoFocus
-                  />
-                </View>
-              </View>
-
-              <Typography variant="xs" color={colors.inkFaint} style={styles.helperText}>
-                We'll send you a verification code
-              </Typography>
-
-              <Button
-                title="Send verification code"
-                variant="primary"
-                onPress={handleSendOtp}
-                disabled={mobileNumber.length < 5}
-                style={styles.button}
+          {/* Mobile Number Field */}
+          <View style={styles.fieldContainer}>
+            <Typography variant="small" color={colors.inkSoft} style={styles.label}>
+              Mobile number
+            </Typography>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder="+91 ｜ Enter your number"
+                keyboardType="phone-pad"
+                value={mobileNumber}
+                onChangeText={setMobileNumber}
+                placeholderTextColor={colors.inkFaint}
+                autoFocus
               />
-            </>
-          ) : (
-            <>
-              {/* Step 2: OTP Verification */}
-              <View style={styles.progressContainer}>
-                <View style={styles.progressBar}>
-                  <View style={[styles.progressFill, { width: '50%' }]} />
-                </View>
-                <Typography variant="xs" color={colors.inkFaint} style={styles.progressText}>
-                  Step 1 of 3 · Verifying your number
-                </Typography>
-              </View>
+            </View>
+          </View>
 
-              <View style={styles.fieldContainer}>
-                <Typography variant="small" color={colors.inkSoft} style={styles.label}>
-                  4-Digit verification code
-                </Typography>
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    style={[styles.input, styles.otpInput]}
-                    placeholder="0000"
-                    keyboardType="number-pad"
-                    maxLength={4}
-                    value={otp}
-                    onChangeText={setOtp}
-                    placeholderTextColor={colors.inkFaint}
-                    autoFocus
-                  />
-                </View>
-              </View>
+          <Typography variant="xs" color={colors.inkFaint} style={styles.helperText}>
+            We will use this number to continue your onboarding.
+          </Typography>
 
-              <Typography variant="xs" color={colors.inkFaint} style={styles.helperText}>
-                Code sent to {mobileNumber}
-              </Typography>
-
-              <Button
-                title="Verify & Continue"
-                variant="primary"
-                onPress={handleVerifyOtp}
-                disabled={otp.length !== 4}
-                style={styles.button}
+          <View style={styles.fieldContainer}>
+            <Typography variant="small" color={colors.inkSoft} style={styles.label}>
+              Create password
+            </Typography>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder="Choose a password"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+                placeholderTextColor={colors.inkFaint}
               />
+            </View>
+          </View>
 
-              <TouchableOpacity onPress={() => { setOtpSent(false); setOtp(''); }}>
-                <Typography variant="body" color={colors.sageDeep} align="center">
-                  Use different number / Resend code
-                </Typography>
-              </TouchableOpacity>
-            </>
-          )}
+          <View style={styles.fieldContainer}>
+            <Typography variant="small" color={colors.inkSoft} style={styles.label}>
+              Confirm password
+            </Typography>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder="Re-enter your password"
+                secureTextEntry
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholderTextColor={colors.inkFaint}
+              />
+            </View>
+          </View>
 
-          {/* Back to Login */}
+          <Typography variant="xs" color={colors.inkFaint} style={styles.helperText}>
+            This password will be stored for future logins.
+          </Typography>
+
+          <Button
+            title="Continue"
+            variant="primary"
+            onPress={handleContinue}
+            disabled={mobileNumber.length < 5 || password.trim().length < 6 || password.trim() !== confirmPassword.trim()}
+            style={styles.button}
+          />
+
           <View style={styles.loginContainer}>
             <Typography variant="body" color={colors.inkSoft} align="center">
-              Already have an account? <Typography variant="bodySemibold" color={colors.sageDeep}>Log in</Typography>
+              Already have an account?{' '}
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Typography variant="bodySemibold" color={colors.sageDeep}>Log in</Typography>
+              </TouchableOpacity>
             </Typography>
           </View>
 
-          {/* Note */}
-          <View style={styles.note}>
-            <Typography variant="xs" color="#7d6321">
-              <Typography variant="xs" style={{ fontWeight: '700' }}>
-                💡 Quick signup
-              </Typography>
-              {' We just need your phone number to get started. Your information stays private and secure.'}
-            </Typography>
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -188,23 +171,6 @@ const styles = StyleSheet.create({
   subtitle: {
     marginTop: spacing.s,
   },
-  progressContainer: {
-    marginBottom: spacing.l,
-  },
-  progressBar: {
-    height: 7,
-    backgroundColor: colors.lineSoft,
-    borderRadius: 6,
-    overflow: 'hidden',
-    marginBottom: spacing.m,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.sage,
-  },
-  progressText: {
-    marginBottom: spacing.s,
-  },
   fieldContainer: {
     marginBottom: spacing.m,
   },
@@ -226,12 +192,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.ink,
     fontFamily: 'Outfit',
-  },
-  otpInput: {
-    textAlign: 'center',
-    fontSize: 28,
-    letterSpacing: 8,
-    fontWeight: '700',
   },
   helperText: {
     marginBottom: spacing.m,

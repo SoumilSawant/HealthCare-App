@@ -1,90 +1,125 @@
 import React from 'react';
+import { View, StyleSheet, SafeAreaView } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
-import { MainTabsParamList, HomeStackParamList, AssessStackParamList } from './types';
-import { colors } from '../theme/theme';
-
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MainTabsParamList } from './types';
+import { colors, spacing } from '../theme/theme';
 import { HomeScreen } from '../screens/home/HomeScreen';
-import { DoctorDiscoveryScreen } from '../screens/booking/DoctorDiscoveryScreen';
-import { BookingScreen } from '../screens/booking/BookingScreen';
-
-import { MoodAnalyzerScreen } from '../screens/assess/MoodAnalyzerScreen';
-import { AnalyzerResultsScreen } from '../screens/assess/AnalyzerResultsScreen';
-
-import { ResourceBankScreen } from '../screens/resources/ResourceBankScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
+import { Typography } from '../components/Typography';
 
 const Tab = createBottomTabNavigator<MainTabsParamList>();
-const HomeStack = createNativeStackNavigator<HomeStackParamList>();
-const AssessStack = createNativeStackNavigator<AssessStackParamList>();
 
-const HomeStackNavigator = () => (
-  <HomeStack.Navigator screenOptions={{ headerShown: false }}>
-    <HomeStack.Screen name="Home" component={HomeScreen} />
-    <HomeStack.Screen name="DoctorDiscovery" component={DoctorDiscoveryScreen} />
-    <HomeStack.Screen name="Booking" component={BookingScreen} />
-  </HomeStack.Navigator>
-);
-
-const AssessStackNavigator = () => (
-  <AssessStack.Navigator screenOptions={{ headerShown: false }}>
-    <AssessStack.Screen name="MoodAnalyzer" component={MoodAnalyzerScreen} />
-    <AssessStack.Screen name="AnalyzerResults" component={AnalyzerResultsScreen} />
-  </AssessStack.Navigator>
+const PlaceholderTab = ({ title }: { title: string }) => (
+  <SafeAreaView style={styles.placeholderSafeArea}>
+    <View style={styles.placeholder}>
+      <Typography variant="displayXS" color={colors.ink} align="center">
+        {title}
+      </Typography>
+      <Typography variant="body" color={colors.inkSoft} align="center" style={{ marginTop: spacing.s }}>
+        Coming soon
+      </Typography>
+    </View>
+  </SafeAreaView>
 );
 
 export const MainTabs = () => {
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
+      initialRouteName="HomeTab"
+      screenOptions={{
         headerShown: false,
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName: keyof typeof Ionicons.glyphMap = 'home';
-
-          if (route.name === 'HomeTab') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'AssessTab') {
-            iconName = focused ? 'heart-half' : 'heart-half-outline';
-          } else if (route.name === 'ResourcesTab') {
-            iconName = focused ? 'library' : 'library-outline';
-          } else if (route.name === 'ProfileTab') {
-            iconName = focused ? 'person' : 'person-outline';
-          }
-
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-          paddingBottom: 5,
-          paddingTop: 5,
-        },
-      })}
+        tabBarShowLabel: true,
+        tabBarActiveTintColor: '#0f766e',
+        tabBarInactiveTintColor: '#c2c2c2',
+        tabBarStyle: styles.tabBar,
+        tabBarLabelStyle: styles.tabLabel,
+        tabBarItemStyle: styles.tabItem,
+      }}
     >
-      <Tab.Screen 
-        name="HomeTab" 
-        component={HomeStackNavigator} 
-        options={{ title: 'Home' }} 
+      <Tab.Screen
+        name="HomeTab"
+        component={HomeScreen}
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color, focused }) => (
+            <MaterialCommunityIcons name={focused ? 'home-variant' : 'home-outline'} size={24} color={color} />
+          ),
+        }}
       />
-      <Tab.Screen 
-        name="AssessTab" 
-        component={AssessStackNavigator} 
-        options={{ title: 'Assess' }} 
+      <Tab.Screen
+        name="ExploreTab"
+        children={() => <PlaceholderTab title="Explore" />}
+        options={{
+          title: 'Explore',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'compass' : 'compass-outline'} size={24} color={color} />
+          ),
+        }}
       />
-      <Tab.Screen 
-        name="ResourcesTab" 
-        component={ResourceBankScreen} 
-        options={{ title: 'Resources' }} 
+      <Tab.Screen
+        name="BookTab"
+        children={() => <PlaceholderTab title="Book" />}
+        options={{
+          title: 'Book',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'add-circle' : 'add-circle-outline'} size={30} color={color} />
+          ),
+        }}
       />
-      <Tab.Screen 
-        name="ProfileTab" 
-        component={ProfileScreen} 
-        options={{ title: 'Profile' }} 
+      <Tab.Screen
+        name="SessionsTab"
+        children={() => <PlaceholderTab title="Sessions" />}
+        options={{
+          title: 'Sessions',
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons name="calendar-month-outline" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="ProfileTab"
+        component={ProfileScreen}
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
+          ),
+        }}
       />
     </Tab.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: colors.surface,
+    borderTopWidth: 0,
+    elevation: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: -4 },
+    height: 84,
+    paddingBottom: 12,
+    paddingTop: 10,
+  },
+  tabLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  tabItem: {
+    paddingTop: 2,
+  },
+  placeholderSafeArea: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  placeholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.l,
+  },
+});

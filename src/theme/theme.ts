@@ -89,6 +89,13 @@ export const layout = {
     shadowRadius: 34,
     elevation: 8,
   },
+  shadowSubtle: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    elevation: 2,
+  },
   shadowSm: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },

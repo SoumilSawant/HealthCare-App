@@ -4,23 +4,41 @@ import { Typography } from '../../components/Typography';
 import { Button } from '../../components/Button';
 import { colors, spacing, layout } from '../../theme/theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useAuth } from '../../context/AuthContext';
+import FrappeAuthService from '../../services/FrappeAuthService';
 
 type Props = NativeStackScreenProps<any, 'Profile'>;
 
 export const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
-  const [gender, setGender] = useState('');
+  const [gender, setGender] = useState<'male' | 'female' | 'other' | ''>('');
+  const [genderOpen, setGenderOpen] = useState(false);
   const [livingStatus, setLivingStatus] = useState<'family' | 'alone' | null>('family');
   const [therapyExperience, setTherapyExperience] = useState<'yes' | 'no' | null>('no');
   const [consentChecked, setConsentChecked] = useState(false);
+  const { login } = useAuth();
 
   const mobileNumber = route.params?.mobileNumber || '';
+  const password = route.params?.password || '';
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (name && age && gender && consentChecked) {
-      // This would go to step 2 of 3, but for now we'll complete signup
-      navigation.navigate('Home');
+      await FrappeAuthService.saveLocalAccount({
+        mobileNumber,
+        password,
+        fullName: name,
+      });
+
+      login({
+        userId: mobileNumber || name,
+        mobileNumber,
+        fullName: name,
+        age: Number(age),
+        gender,
+        livingStatus: livingStatus || 'family',
+        therapyExperience: therapyExperience === 'yes',
+      });
     }
   };
 
@@ -103,14 +121,37 @@ export const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
             <Typography variant="small" color={colors.inkSoft} style={styles.label}>
               Gender
             </Typography>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                placeholder="Select ▾"
-                value={gender}
-                onChangeText={setGender}
-                placeholderTextColor={colors.inkFaint}
-              />
+            <View>
+              <TouchableOpacity
+                style={styles.dropdownField}
+                onPress={() => setGenderOpen(!genderOpen)}
+              >
+                <Typography variant="small" color={gender ? colors.ink : colors.inkFaint}>
+                  {gender ? gender.charAt(0).toUpperCase() + gender.slice(1) : 'Select gender'}
+                </Typography>
+                <Typography variant="small" color={colors.inkFaint}>
+                  {genderOpen ? '▴' : '▾'}
+                </Typography>
+              </TouchableOpacity>
+
+              {genderOpen && (
+                <View style={styles.dropdownMenu}>
+                  {(['male', 'female', 'other'] as const).map((option) => (
+                    <TouchableOpacity
+                      key={option}
+                      style={[styles.dropdownItem, gender === option && styles.dropdownItemSelected]}
+                      onPress={() => {
+                        setGender(option);
+                        setGenderOpen(false);
+                      }}
+                    >
+                      <Typography variant="small" color={gender === option ? colors.sageDeep : colors.inkSoft}>
+                        {option.charAt(0).toUpperCase() + option.slice(1)}
+                      </Typography>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -166,7 +207,7 @@ export const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
             )}
           </TouchableOpacity>
           <Typography variant="body" color={colors.inkSoft}>
-            I consent to share this for my care (Consent #2).
+            I consent to share this for my care.
           </Typography>
         </View>
 
@@ -185,7 +226,7 @@ export const ProfileSetupScreen: React.FC<Props> = ({ navigation, route }) => {
             <Typography variant="xs" style={{ fontWeight: '700' }}>
               💡 Smart signup
             </Typography>
-            {' Long sensitive form split into 3 short steps (identity → context → health). Completion rates rise sharply vs. one intimidating page.'}
+            {' The profile form is now shorter and sends you directly to Home when completed.'}
           </Typography>
         </View>
       </ScrollView>
@@ -253,6 +294,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.ink,
     fontFamily: 'Outfit',
+  },
+  dropdownField: {
+    minHeight: 50,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    borderRadius: layout.borderRadiusSmall,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.m,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dropdownMenu: {
+    marginTop: spacing.xs,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    borderRadius: layout.borderRadiusSmall,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+    ...layout.shadowSm,
+  },
+  dropdownItem: {
+    paddingHorizontal: spacing.m,
+    paddingVertical: spacing.m,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.lineSoft,
+  },
+  dropdownItemSelected: {
+    backgroundColor: colors.sageSoft,
   },
   rowContainer: {
     flexDirection: 'row',

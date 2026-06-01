@@ -1,130 +1,169 @@
 import React from 'react';
-import { View, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Linking } from 'react-native';
+import { View, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, StatusBar, useWindowDimensions } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Typography } from '../../components/Typography';
-import { Card } from '../../components/Card';
-import { colors, spacing, layout } from '../../theme/theme';
-import { mockAppointments } from '../../data/mockData';
-import { Ionicons } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { HomeStackParamList } from '../../navigation/types';
-import { useNavigation } from '@react-navigation/native';
+import { colors, spacing, layout, typography } from '../../theme/theme';
 import { useAuth } from '../../context/AuthContext';
 
-type NavigationProp = NativeStackNavigationProp<HomeStackParamList, 'Home'>;
+const getTimeGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+};
+
+const getFirstName = (fullName?: string) => {
+  if (!fullName) return 'Aarav';
+  return fullName.trim().split(/\s+/)[0] || 'Aarav';
+};
+
+const QuickCard = ({
+  title,
+  icon,
+  bg,
+  titleColor = colors.ink,
+  width,
+  onPress,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  bg: string;
+  titleColor?: string;
+  width: number;
+  onPress?: () => void;
+}) => (
+  <TouchableOpacity activeOpacity={0.86} onPress={onPress} style={[styles.quickCard, { backgroundColor: bg, width }]}>
+    <View style={styles.quickCardIconWrap}>{icon}</View>
+    <Typography variant="bodySemibold" color={titleColor} align="center" style={styles.quickCardLabel}>
+      {title}
+    </Typography>
+  </TouchableOpacity>
+);
 
 export const HomeScreen = () => {
-  const navigation = useNavigation<NavigationProp>();
-  const { t } = useAuth();
-  const nextAppointment = mockAppointments[0];
+  const { user } = useAuth();
+  const { width } = useWindowDimensions();
+  const firstName = getFirstName(user?.fullName);
+  const greeting = getTimeGreeting();
 
-  const handleCallHelpline = () => {
-    // In a real app, use Linking.openURL('tel:14416')
-  };
+  const quickCardWidth = Math.min((width - spacing.ml * 2 - spacing.s) / 2, 170);
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        
-        {/* Header Section */}
-        <View style={styles.header}>
-          <Typography variant="h2" color={colors.primary}>{t('greeting')}</Typography>
-          <Typography variant="body" color={colors.textSecondary}>{t('feelingToday')}</Typography>
+        <View style={styles.topRow}>
+          <Typography variant="bodySemibold" color={colors.ink} style={styles.timeText}>
+            9:41
+          </Typography>
+          <View style={styles.homePill}>
+            <Typography variant="small" color={colors.surface} style={styles.homePillText}>
+              05 · HOME
+            </Typography>
+          </View>
+          <View style={styles.statusIcons}>
+            <Ionicons name="cellular" size={16} color="#5e94da" />
+            <Ionicons name="battery-half" size={16} color="#8ccf5b" />
+          </View>
         </View>
 
-        {/* Daily Motivation */}
-        <Card style={styles.quoteCard} variant="flat">
-          <Ionicons name="leaf-outline" size={24} color={colors.accent} style={{ marginBottom: spacing.s }} />
-          <Typography variant="bodySemibold" color={colors.primary}>
-            {t('quote')}
-          </Typography>
-        </Card>
-
-        {/* Primary CTA (Mood Check) */}
-        <TouchableOpacity 
-          style={styles.moodCta} 
-          activeOpacity={0.8}
-        >
-          <View style={styles.moodCtaContent}>
-            <Typography variant="h3" color={colors.textInverse}>{t('startMoodCheck')}</Typography>
-            <Typography variant="caption" color={colors.secondaryLight} style={{ marginTop: spacing.xs }}>
-              {t('moodCheckSubtitle')}
+        <View style={styles.headerRow}>
+          <View style={styles.greetingWrap}>
+            <Typography variant="body" color={colors.inkSoft} style={styles.greetingLabel}>
+              {greeting}
+            </Typography>
+            <Typography variant="display" color={colors.ink} style={styles.nameText}>
+              Hello, {firstName}
             </Typography>
           </View>
-          <View style={styles.moodCtaIcon}>
-            <Ionicons name="heart-half" size={32} color={colors.primary} />
-          </View>
-        </TouchableOpacity>
-
-        {/* Secondary CTA */}
-        <TouchableOpacity 
-          style={styles.expertCta} 
-          activeOpacity={0.8}
-          onPress={() => navigation.navigate('DoctorDiscovery')}
-        >
-          <Typography variant="bodySemibold" color={colors.primary}>{t('bookExpert')}</Typography>
-          <Ionicons name="arrow-forward" size={20} color={colors.primary} />
-        </TouchableOpacity>
-
-        {/* Widgets */}
-        <Typography variant="h3" style={styles.sectionTitle}>{t('upcomingAppointments')}</Typography>
-        {nextAppointment ? (
-          <Card style={styles.appointmentCard}>
-            <View style={styles.appointmentHeader}>
-              <View style={styles.dateBadge}>
-                <Typography variant="small" color={colors.primary} align="center">
-                  {nextAppointment.date === 'Tomorrow' ? t('tomorrow') : nextAppointment.date}
-                </Typography>
-                <Typography variant="bodySemibold" color={colors.primary} align="center">
-                  {nextAppointment.time.split(' ')[0]}
-                </Typography>
-              </View>
-              <View style={styles.appointmentInfo}>
-                <Typography variant="bodySemibold">{nextAppointment.doctorName}</Typography>
-                <Typography variant="caption" color={colors.textSecondary}>
-                  {nextAppointment.type === 'Video Consultation' ? t('videoConsultation') : nextAppointment.type}
-                </Typography>
-              </View>
-            </View>
-            <View style={styles.appointmentActions}>
-              <TouchableOpacity style={styles.joinButton}>
-                <Ionicons name="videocam-outline" size={16} color={colors.textInverse} />
-                <Typography variant="captionSemibold" color={colors.textInverse} style={{ marginLeft: spacing.xs }}>
-                  {t('joinCall')}
-                </Typography>
-              </TouchableOpacity>
-            </View>
-          </Card>
-        ) : (
-          <Typography variant="body" color={colors.textSecondary}>{t('noAppointments')}</Typography>
-        )}
-
-        {/* Corporate Sessions */}
-        <Card style={styles.corporateBanner} variant="outline">
-          <View style={{ flex: 1 }}>
-            <Typography variant="bodySemibold" color={colors.primary}>{t('corporateWellness')}</Typography>
-            <Typography variant="caption" color={colors.textSecondary} style={{ marginTop: spacing.xs }}>
-              {t('corporateSubtitle')}
+          <View style={styles.avatarBubble}>
+            <Typography variant="displaySmall" color={colors.gold}>
+              🙂
             </Typography>
           </View>
-          <Ionicons name="business-outline" size={32} color={colors.secondary} />
-        </Card>
+        </View>
 
-        {/* Emergency Footer */}
-        <View style={styles.emergencyFooter}>
-          <Typography variant="captionSemibold" color={colors.error} style={{ marginBottom: spacing.s }}>
-            {t('emergencyHelpline')}
+        <View style={styles.heroCard}>
+          <Typography variant="displayXS" color={colors.surface} style={styles.heroTitle}>
+            How are you feeling today?
           </Typography>
-          <TouchableOpacity style={styles.emergencyCard} onPress={handleCallHelpline} activeOpacity={0.8}>
-            <View>
-              <Typography variant="bodySemibold" color={colors.textPrimary}>Tele MANAS</Typography>
-              <Typography variant="caption" color={colors.textSecondary}>{t('teleManasSubtitle')}</Typography>
-            </View>
-            <View style={styles.callIconBadge}>
-              <Ionicons name="call" size={20} color={colors.surface} />
-            </View>
+          <Typography variant="bodySemibold" color="rgba(255,255,255,0.85)" style={styles.heroSubtitle}>
+            A 2-minute check-in helps us guide you.
+          </Typography>
+
+          <TouchableOpacity activeOpacity={0.9} style={styles.heroButton}>
+            <Typography variant="bodySemibold" color={colors.surface} align="center">
+              Start Mood Check  →
+            </Typography>
           </TouchableOpacity>
+
+          <Typography variant="bodySemibold" color="rgba(255,255,255,0.78)" align="center" style={styles.heroLink}>
+            or book an expert directly
+          </Typography>
         </View>
 
+        <Typography variant="small" color={colors.inkFaint} style={styles.sectionLabel}>
+          QUICK ACCESS
+        </Typography>
+
+        <View style={styles.grid}>
+          <QuickCard
+            title="Find a Doctor"
+            bg={colors.surface}
+            width={quickCardWidth}
+            icon={<MaterialCommunityIcons name="compass-outline" size={28} color="#d3a13f" />}
+            onPress={() => {}}
+          />
+          <QuickCard
+            title="Resources"
+            bg={colors.surface}
+            width={quickCardWidth}
+            icon={<MaterialCommunityIcons name="view-grid-plus" size={28} color="#4a6fdc" />}
+            onPress={() => {}}
+          />
+          <QuickCard
+            title="Corporate"
+            bg={colors.surface}
+            width={quickCardWidth}
+            icon={<MaterialCommunityIcons name="account-group" size={28} color="#5c3b94" />}
+            onPress={() => {}}
+          />
+          <QuickCard
+            title="Emergency"
+            bg="#fde7e6"
+            width={quickCardWidth}
+            titleColor="#db5348"
+            icon={<View style={styles.sosBadge}><Typography variant="bodySemibold" color={colors.surface}>SOS</Typography></View>}
+            onPress={() => {}}
+          />
+        </View>
+
+        <Typography variant="small" color={colors.inkFaint} style={styles.sectionLabel}>
+          DAILY MOTIVATION
+        </Typography>
+
+        <View style={styles.motivationCard}>
+          <View style={styles.quoteBlock}>
+            <View style={styles.quoteGlow} />
+            <Typography variant="displaySmall" color="rgba(255,255,255,0.9)" align="center" style={styles.quoteMark}>
+              “
+            </Typography>
+          </View>
+          <Typography variant="displaySmall" color={colors.ink} style={styles.motivationText}>
+            Small steps count too.
+          </Typography>
+        </View>
+
+        <View style={styles.noteBox}>
+          <View style={styles.notePill}>
+            <Typography variant="small" color={colors.surface} style={{ fontWeight: '700' }}>
+              UX
+            </Typography>
+          </View>
+          <Typography variant="body" color="#8c6410" style={styles.noteText}>
+            Mood check-in is one calm hero card; Emergency stays on home permanently (not just after risk detection).
+          </Typography>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -133,116 +172,198 @@ export const HomeScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.bg,
   },
   container: {
-    padding: spacing.l,
+    paddingHorizontal: spacing.ml,
+    paddingTop: spacing.s,
     paddingBottom: spacing.xxl,
   },
-  header: {
-    marginBottom: spacing.l,
-  },
-  quoteCard: {
-    backgroundColor: colors.secondaryLight,
-    marginBottom: spacing.l,
-  },
-  moodCta: {
-    backgroundColor: colors.primary,
-    borderRadius: layout.borderRadiusLarge,
-    padding: spacing.l,
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: spacing.m,
-    ...layout.shadowSubtle,
   },
-  moodCtaContent: {
+  timeText: {
+    width: 52,
+  },
+  homePill: {
+    backgroundColor: '#5a5d58',
+    borderRadius: 999,
+    paddingHorizontal: spacing.m,
+    paddingVertical: 6,
+  },
+  homePillText: {
+    letterSpacing: 1.2,
+    fontWeight: '800',
+  },
+  statusIcons: {
+    flexDirection: 'row',
+    gap: 8,
+    width: 52,
+    justifyContent: 'flex-end',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: spacing.l,
+  },
+  greetingWrap: {
     flex: 1,
     paddingRight: spacing.m,
   },
-  moodCtaIcon: {
+  greetingLabel: {
+    marginBottom: 2,
+  },
+  nameText: {
+    fontSize: 36,
+    lineHeight: 40,
+    letterSpacing: -0.8,
+  },
+  avatarBubble: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.surface,
+    backgroundColor: '#e8e3d8',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 6,
   },
-  expertCta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    padding: spacing.m,
-    borderRadius: layout.borderRadiusSmall,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.xl,
-  },
-  sectionTitle: {
-    marginBottom: spacing.m,
-  },
-  appointmentCard: {
+  heroCard: {
+    backgroundColor: colors.sage,
+    borderRadius: 28,
+    padding: spacing.l,
     marginBottom: spacing.l,
   },
-  appointmentHeader: {
-    flexDirection: 'row',
+  heroTitle: {
+    maxWidth: 240,
+  },
+  heroSubtitle: {
+    marginTop: spacing.s,
     marginBottom: spacing.m,
+    fontSize: 18,
+    lineHeight: 22,
+    maxWidth: 270,
   },
-  dateBadge: {
-    backgroundColor: colors.secondaryLight,
-    borderRadius: layout.borderRadiusSmall,
-    padding: spacing.s,
-    width: 60,
+  heroButton: {
+    backgroundColor: colors.gold,
+    borderRadius: 18,
+    paddingVertical: 16,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.m,
+    marginBottom: spacing.s,
+    shadowColor: '#a06d12',
+    shadowOpacity: 0.3,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
   },
-  appointmentInfo: {
-    flex: 1,
-    justifyContent: 'center',
+  heroLink: {
+    fontSize: 15,
   },
-  appointmentActions: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: spacing.m,
-    alignItems: 'flex-end',
+  sectionLabel: {
+    fontWeight: '800',
+    letterSpacing: 1.4,
+    marginBottom: spacing.s,
   },
-  joinButton: {
-    backgroundColor: colors.primary,
+  grid: {
     flexDirection: 'row',
-    paddingVertical: spacing.s,
-    paddingHorizontal: spacing.m,
-    borderRadius: layout.borderRadiusLarge,
-    alignItems: 'center',
-  },
-  corporateBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    marginBottom: spacing.xl,
-  },
-  emergencyFooter: {
-    marginTop: spacing.xl,
-    paddingTop: spacing.l,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  emergencyCard: {
-    flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#FEE2E2', // Light red background
-    padding: spacing.m,
-    borderRadius: layout.borderRadiusSmall,
-    borderWidth: 1,
-    borderColor: '#FECACA',
+    gap: spacing.s,
+    marginBottom: spacing.l,
   },
-  callIconBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.error,
+  quickCard: {
+    minHeight: 108,
+    borderRadius: 22,
+    paddingVertical: spacing.m,
+    paddingHorizontal: spacing.s,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
+  },
+  quickCardIconWrap: {
+    height: 38,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.s,
+  },
+  quickCardLabel: {
+    fontSize: 18,
+    lineHeight: 22,
+  },
+  sosBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: '#ff6a87',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  motivationCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 24,
+    padding: 14,
+    marginBottom: spacing.m,
+    shadowColor: '#000',
+    shadowOpacity: 0.07,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
+  },
+  quoteBlock: {
+    height: 128,
+    borderRadius: 20,
+    backgroundColor: '#d9b05a',
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quoteGlow: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#e2b78a',
+    opacity: 0.35,
+  },
+  quoteMark: {
+    fontSize: 40,
+    lineHeight: 40,
+    marginTop: -4,
+  },
+  motivationText: {
+    marginTop: spacing.s,
+    paddingHorizontal: spacing.xs,
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  noteBox: {
+    backgroundColor: '#f7e9c4',
+    borderWidth: 1,
+    borderColor: '#e8ca84',
+    borderRadius: 16,
+    padding: 14,
+    paddingTop: 20,
+    marginBottom: spacing.s,
+  },
+  notePill: {
+    position: 'absolute',
+    top: -10,
+    left: 12,
+    backgroundColor: '#d3aa49',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+  },
+  noteText: {
+    fontSize: 14,
+    lineHeight: 20,
   },
 });
