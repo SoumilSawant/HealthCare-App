@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { View, StyleSheet, SafeAreaView, TextInput, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -9,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { AuthStackParamList } from '../../navigation/types';
 import FrappeAuthService from '../../services/FrappeAuthService';
 import { FirebaseAuthService } from '../../services/FirebaseAuthService';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
@@ -18,7 +17,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const { login, t, language } = useAuth();
 
   const normalizeMobileNumber = (value: string) => {
     const digits = value.replace(/\D/g, '');
@@ -72,6 +71,13 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        {/* Appbar */}
+        <View style={styles.appbar}>
+          <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7} style={styles.backButton}>
+            <Ionicons name="chevron-back" size={24} color={colors.ink} />
+          </TouchableOpacity>
+        </View>
+
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.logoContainer}>
             <View style={styles.logoMark}>
@@ -80,8 +86,8 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.header}>
-            <Typography variant="displayXS" color={colors.ink} align="center">Welcome back</Typography>
-            <Typography variant="body" color={colors.inkSoft} align="center" style={styles.subtitle}>Log in with your Frappe account</Typography>
+            <Typography variant="displayXS" color={colors.ink} align="center">{t('signInTitle')}</Typography>
+            <Typography variant="body" color={colors.inkSoft} align="center" style={styles.subtitle}>{t('signInSubtitle')}</Typography>
           </View>
 
           {!!error && (
@@ -91,7 +97,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           )}
 
           <View style={styles.fieldContainer}>
-            <Typography variant="small" color={colors.inkSoft} style={styles.label}>Mobile number</Typography>
+            <Typography variant="small" color={colors.inkSoft} style={styles.label}>{t('mobileNumber')}</Typography>
             <View style={styles.inputWrapper}>
               <View style={styles.prefixContainer}>
                 <Typography variant="bodySemibold" color={colors.inkSoft}>+91</Typography>
@@ -101,23 +107,41 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.fieldContainer}>
-            <Typography variant="small" color={colors.inkSoft} style={styles.label}>Password</Typography>
+            <Typography variant="small" color={colors.inkSoft} style={styles.label}>
+              {language === 'hi' ? 'पासवर्ड' : language === 'mr' ? 'पासवर्ड' : 'Password'}
+            </Typography>
             <View style={styles.inputWrapper}>
               <TextInput style={styles.input} placeholder="••••••••" secureTextEntry value={password} onChangeText={setPassword} placeholderTextColor={colors.inkFaint} />
             </View>
           </View>
 
           <TouchableOpacity style={styles.forgotButton}>
-            <Typography variant="small" color={colors.sageDeep} align="right">Forgot password?</Typography>
+            <Typography variant="small" color={colors.sageDeep} align="right">
+              {language === 'hi' ? 'पासवर्ड भूल गए?' : language === 'mr' ? 'पासवर्ड विसरलात?' : 'Forgot password?'}
+            </Typography>
           </TouchableOpacity>
 
-          <Button title="Log in" variant="primary" onPress={handleLogin} disabled={normalizeMobileNumber(mobileNumber).length !== 10 || password.length === 0} loading={loading} style={styles.button} />
+          <Button 
+            title={language === 'hi' ? 'लॉग इन करें' : language === 'mr' ? 'लॉग इन करा' : 'Log in'} 
+            variant="primary" 
+            onPress={handleLogin} 
+            disabled={normalizeMobileNumber(mobileNumber).length !== 10 || password.length === 0} 
+            loading={loading} 
+            style={styles.button} 
+          />
 
-          <Button title="Log in with OTP instead" variant="ghost" onPress={() => navigation.navigate('OtpLogin')} style={styles.button} />
+          <Button 
+            title={language === 'hi' ? 'ओटीपी से लॉग इन करें' : language === 'mr' ? 'ओटीपी द्वारे लॉग इन करा' : 'Log in with OTP instead'} 
+            variant="ghost" 
+            onPress={() => navigation.navigate('OtpLogin')} 
+            style={styles.button} 
+          />
 
           <View style={styles.dividerContainer}>
             <View style={styles.dividerLine} />
-            <Typography variant="small" color={colors.inkFaint} style={styles.dividerText}>or continue with</Typography>
+            <Typography variant="small" color={colors.inkFaint} style={styles.dividerText}>
+              {language === 'hi' ? 'या इससे जारी रखें' : language === 'mr' ? 'किंवा याद्वारे पुढे जा' : 'or continue with'}
+            </Typography>
             <View style={styles.dividerLine} />
           </View>
 
@@ -128,13 +152,15 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.signupContainer}>
-            <Typography variant="body" color={colors.inkSoft} align="center">New here?
+            <Typography variant="body" color={colors.inkSoft} align="center">
+              {language === 'hi' ? 'यहाँ नए हैं? ' : language === 'mr' ? 'येथे नवीन आहात? ' : 'New here? '}
               <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-                <Typography variant="bodySemibold" color={colors.sageDeep}> Create an account</Typography>
+                <Typography variant="bodySemibold" color={colors.sageDeep}>
+                  {language === 'hi' ? 'खाता बनाएं' : language === 'mr' ? 'खाते तयार करा' : 'Create an account'}
+                </Typography>
               </TouchableOpacity>
             </Typography>
           </View>
-
 
         </ScrollView>
       </KeyboardAvoidingView>
@@ -145,7 +171,23 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.bg },
   container: { flex: 1 },
-  scrollContent: { padding: spacing.ml, paddingVertical: spacing.l },
+  appbar: {
+    paddingHorizontal: spacing.ml,
+    paddingVertical: spacing.s,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Platform.OS === 'ios' ? 0 : spacing.s,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    ...layout.shadowSubtle,
+  },
+  scrollContent: { padding: spacing.ml, paddingVertical: spacing.s, paddingBottom: spacing.xxl },
   logoContainer: { alignItems: 'center', marginBottom: spacing.l },
   logoMark: { width: 60, height: 60, borderRadius: 20, backgroundColor: colors.sage, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.m },
   header: { marginBottom: spacing.l },
