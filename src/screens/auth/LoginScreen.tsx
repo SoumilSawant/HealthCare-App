@@ -8,6 +8,8 @@ import { colors, spacing, layout } from '../../theme/theme';
 import { useAuth } from '../../context/AuthContext';
 import { AuthStackParamList } from '../../navigation/types';
 import FrappeAuthService from '../../services/FrappeAuthService';
+import { FirebaseAuthService } from '../../services/FirebaseAuthService';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
@@ -18,7 +20,11 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [error, setError] = useState('');
   const { login } = useAuth();
 
-  const normalizeMobileNumber = (value: string) => value.trim().replace(/\s+/g, '');
+  const normalizeMobileNumber = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.startsWith('91') && digits.length === 12) return digits.slice(2);
+    return digits;
+  };
 
   const getErrorMessage = (fallback: string, errorValue: unknown) => {
     if (errorValue instanceof Error) return errorValue.message || fallback;
@@ -27,7 +33,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleLogin = async () => {
     const normalizedMobile = normalizeMobileNumber(mobileNumber);
-    if (normalizedMobile.length <= 5 || password.trim().length === 0) return;
+    if (normalizedMobile.length !== 10 || password.trim().length === 0) return;
 
     setError('');
     setLoading(true);
@@ -36,6 +42,28 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
       login({ userId: response.user, mobileNumber: normalizedMobile, fullName: response.full_name || response.user });
     } catch (err) {
       setError(getErrorMessage('Password login failed. Check the backend URL and credentials.', err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const userCredential = await FirebaseAuthService.signInWithGoogle();
+      
+      const firebaseToken = await FirebaseAuthService.getFirebaseIdToken();
+      if (!firebaseToken) throw new Error('Failed to get secure token.');
+      
+      // Mock response for Frappe
+      const mockResponse = { user: userCredential.user.email || 'google_user', full_name: userCredential.user.displayName || 'Google User' };
+      login({ userId: mockResponse.user, mobileNumber: '', fullName: mockResponse.full_name, email: userCredential.user.email || undefined });
+    } catch (err: any) {
+      // Ignore user cancelled error from native module
+      if (err.code !== 'SIGN_IN_CANCELLED') {
+        setError(getErrorMessage('Google Sign-In failed.', err));
+      }
     } finally {
       setLoading(false);
     }
@@ -65,7 +93,10 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.fieldContainer}>
             <Typography variant="small" color={colors.inkSoft} style={styles.label}>Mobile number</Typography>
             <View style={styles.inputWrapper}>
-              <TextInput style={styles.input} placeholder="+91 ｜ Enter your number" keyboardType="phone-pad" value={mobileNumber} onChangeText={setMobileNumber} placeholderTextColor={colors.inkFaint} />
+              <View style={styles.prefixContainer}>
+                <Typography variant="bodySemibold" color={colors.inkSoft}>+91</Typography>
+              </View>
+              <TextInput style={styles.input} placeholder="Enter your number" keyboardType="phone-pad" value={mobileNumber} onChangeText={setMobileNumber} placeholderTextColor={colors.inkFaint} maxLength={10} />
             </View>
           </View>
 
@@ -80,7 +111,21 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
             <Typography variant="small" color={colors.sageDeep} align="right">Forgot password?</Typography>
           </TouchableOpacity>
 
-          <Button title="Log in" variant="primary" onPress={handleLogin} disabled={mobileNumber.length < 5 || password.length === 0} loading={loading} style={styles.button} />
+          <Button title="Log in" variant="primary" onPress={handleLogin} disabled={normalizeMobileNumber(mobileNumber).length !== 10 || password.length === 0} loading={loading} style={styles.button} />
+
+          <Button title="Log in with OTP instead" variant="ghost" onPress={() => navigation.navigate('OtpLogin')} style={styles.button} />
+
+          <View style={styles.dividerContainer}>
+            <View style={styles.dividerLine} />
+            <Typography variant="small" color={colors.inkFaint} style={styles.dividerText}>or continue with</Typography>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <View style={styles.socialContainer}>
+            <TouchableOpacity style={styles.socialButton} onPress={handleGoogleSignIn} disabled={loading}>
+              <MaterialCommunityIcons name="google" size={24} color={colors.ink} />
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.signupContainer}>
             <Typography variant="body" color={colors.inkSoft} align="center">New here?
@@ -90,12 +135,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
             </Typography>
           </View>
 
-          <View style={styles.note}>
-            <Typography variant="xs" color={colors.goldSoft === '#f6edd8' ? colors.gold : '#7d6321'}>
-              <Typography variant="xs" style={{ fontWeight: '700' }}>💡 Saved password</Typography>
-              {' Use the password you created during signup to log back in.'}
-            </Typography>
-          </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -112,11 +152,16 @@ const styles = StyleSheet.create({
   subtitle: { marginTop: spacing.s },
   fieldContainer: { marginBottom: spacing.m },
   label: { marginBottom: spacing.xs, color: colors.inkSoft },
-  inputWrapper: { height: 50, borderWidth: 1.5, borderColor: colors.line, borderRadius: layout.borderRadiusSmall, backgroundColor: colors.surface, justifyContent: 'center' },
-  input: { flex: 1, paddingHorizontal: spacing.m, fontSize: 14, color: colors.ink, fontFamily: 'Outfit' },
+  inputWrapper: { height: 50, borderWidth: 1.5, borderColor: colors.line, borderRadius: layout.borderRadiusSmall, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center' },
+  prefixContainer: { paddingHorizontal: spacing.m, borderRightWidth: 1.5, borderColor: colors.line, height: '100%', justifyContent: 'center' },
+  input: { flex: 1, paddingHorizontal: spacing.m, fontSize: 14, color: colors.ink, fontFamily: 'Outfit', ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}) },
   forgotButton: { alignItems: 'flex-end', marginVertical: spacing.xs, marginBottom: spacing.m },
   button: { marginVertical: spacing.s },
   signupContainer: { marginTop: spacing.l },
-  note: { backgroundColor: colors.goldSoft, borderRadius: layout.borderRadiusSmall, padding: spacing.m, marginTop: spacing.l, borderWidth: 1, borderColor: '#ecdcb0' },
   errorBox: { backgroundColor: colors.crisisSoft, borderRadius: layout.borderRadiusSmall, borderWidth: 1, borderColor: colors.crisis, padding: spacing.m, marginBottom: spacing.m },
+  dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: spacing.l },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.line },
+  dividerText: { marginHorizontal: spacing.m },
+  socialContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.l },
+  socialButton: { flex: 1, height: 60, borderWidth: 1.5, borderColor: colors.line, borderRadius: layout.borderRadiusSmall, justifyContent: 'center', alignItems: 'center', marginHorizontal: spacing.xs },
 });

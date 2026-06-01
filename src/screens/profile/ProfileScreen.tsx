@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 
 export const ProfileScreen = () => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   const menuItems = [
     { id: '1', title: 'Past Consultations', icon: 'time-outline' },
@@ -23,13 +23,14 @@ export const ProfileScreen = () => {
       <ScrollView contentContainerStyle={styles.container}>
         
         <View style={styles.header}>
-          <Image 
-            source={{ uri: 'https://i.pravatar.cc/150?u=sarah' }} 
-            style={styles.avatar} 
-          />
+          <View style={styles.avatarContainer}>
+            <Typography variant="h2" color={colors.primary}>
+              {(user?.fullName || 'User').charAt(0).toUpperCase()}
+            </Typography>
+          </View>
           <View style={styles.userInfo}>
-            <Typography variant="h2" color={colors.primary}>Sarah Jenkins</Typography>
-            <Typography variant="body" color={colors.textSecondary}>+91 98765 43210</Typography>
+            <Typography variant="h2" color={colors.primary}>{user?.fullName || 'User'}</Typography>
+            <Typography variant="body" color={colors.textSecondary}>+91 {user?.mobileNumber || ''}</Typography>
             <Typography variant="caption" color={colors.primary} style={styles.editProfile}>
               Edit Profile
             </Typography>
@@ -38,17 +39,17 @@ export const ProfileScreen = () => {
 
         <Card style={styles.statsCard} variant="flat">
           <View style={styles.stat}>
-            <Typography variant="h3" color={colors.primary}>3</Typography>
+            <Typography variant="h3" color={colors.primary}>0</Typography>
             <Typography variant="caption" color={colors.textSecondary}>Sessions</Typography>
           </View>
           <View style={styles.divider} />
           <View style={styles.stat}>
-            <Typography variant="h3" color={colors.primary}>12</Typography>
+            <Typography variant="h3" color={colors.primary}>0</Typography>
             <Typography variant="caption" color={colors.textSecondary}>Resources</Typography>
           </View>
           <View style={styles.divider} />
           <View style={styles.stat}>
-            <Typography variant="h3" color={colors.primary}>2</Typography>
+            <Typography variant="h3" color={colors.primary}>0</Typography>
             <Typography variant="caption" color={colors.textSecondary}>Assessments</Typography>
           </View>
         </Card>
@@ -95,11 +96,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
     marginTop: spacing.m,
   },
-  avatar: {
+  avatarContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
     marginRight: spacing.l,
+    backgroundColor: '#e2ece9',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   userInfo: {
     flex: 1,

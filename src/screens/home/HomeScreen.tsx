@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, StatusBar, useWindowDimensions } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Typography } from '../../components/Typography';
 import { colors, spacing, layout, typography } from '../../theme/theme';
 import { useAuth } from '../../context/AuthContext';
@@ -52,20 +52,7 @@ export const HomeScreen = () => {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <View style={styles.topRow}>
-          <Typography variant="bodySemibold" color={colors.ink} style={styles.timeText}>
-            9:41
-          </Typography>
-          <View style={styles.homePill}>
-            <Typography variant="small" color={colors.surface} style={styles.homePillText}>
-              05 · HOME
-            </Typography>
-          </View>
-          <View style={styles.statusIcons}>
-            <Ionicons name="cellular" size={16} color="#5e94da" />
-            <Ionicons name="battery-half" size={16} color="#8ccf5b" />
-          </View>
-        </View>
+
 
         <View style={styles.headerRow}>
           <View style={styles.greetingWrap}>
@@ -76,11 +63,7 @@ export const HomeScreen = () => {
               Hello, {firstName}
             </Typography>
           </View>
-          <View style={styles.avatarBubble}>
-            <Typography variant="displaySmall" color={colors.gold}>
-              🙂
-            </Typography>
-          </View>
+
         </View>
 
         <View style={styles.heroCard}>
@@ -145,8 +128,8 @@ export const HomeScreen = () => {
         <View style={styles.motivationCard}>
           <View style={styles.quoteBlock}>
             <View style={styles.quoteGlow} />
-            <Typography variant="displaySmall" color="rgba(255,255,255,0.9)" align="center" style={styles.quoteMark}>
-              “
+            <Typography variant="displaySmall" color="rgba(255,255,255,0.95)" align="center" style={styles.quoteTextContent}>
+              "You don't have to see the whole staircase, just take the first step."
             </Typography>
           </View>
           <Typography variant="displaySmall" color={colors.ink} style={styles.motivationText}>
@@ -154,16 +137,7 @@ export const HomeScreen = () => {
           </Typography>
         </View>
 
-        <View style={styles.noteBox}>
-          <View style={styles.notePill}>
-            <Typography variant="small" color={colors.surface} style={{ fontWeight: '700' }}>
-              UX
-            </Typography>
-          </View>
-          <Typography variant="body" color="#8c6410" style={styles.noteText}>
-            Mood check-in is one calm hero card; Emergency stays on home permanently (not just after risk detection).
-          </Typography>
-        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -179,31 +153,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.s,
     paddingBottom: spacing.xxl,
   },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.m,
-  },
-  timeText: {
-    width: 52,
-  },
-  homePill: {
-    backgroundColor: '#5a5d58',
-    borderRadius: 999,
-    paddingHorizontal: spacing.m,
-    paddingVertical: 6,
-  },
-  homePillText: {
-    letterSpacing: 1.2,
-    fontWeight: '800',
-  },
-  statusIcons: {
-    flexDirection: 'row',
-    gap: 8,
-    width: 52,
-    justifyContent: 'flex-end',
-  },
+
   headerRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -222,15 +172,7 @@ const styles = StyleSheet.create({
     lineHeight: 40,
     letterSpacing: -0.8,
   },
-  avatarBubble: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#e8e3d8',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 6,
-  },
+
   heroCard: {
     backgroundColor: colors.sage,
     borderRadius: 28,
@@ -333,10 +275,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#e2b78a',
     opacity: 0.35,
   },
-  quoteMark: {
-    fontSize: 40,
-    lineHeight: 40,
-    marginTop: -4,
+  quoteTextContent: {
+    paddingHorizontal: spacing.l,
+    fontSize: 17,
+    lineHeight: 24,
   },
   motivationText: {
     marginTop: spacing.s,
@@ -344,26 +286,5 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 28,
   },
-  noteBox: {
-    backgroundColor: '#f7e9c4',
-    borderWidth: 1,
-    borderColor: '#e8ca84',
-    borderRadius: 16,
-    padding: 14,
-    paddingTop: 20,
-    marginBottom: spacing.s,
-  },
-  notePill: {
-    position: 'absolute',
-    top: -10,
-    left: 12,
-    backgroundColor: '#d3aa49',
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 4,
-  },
-  noteText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
+
 });

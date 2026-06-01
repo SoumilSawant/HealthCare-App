@@ -5,6 +5,7 @@ import { CompositeNavigationProp, NavigatorScreenParams } from '@react-navigatio
 export type AuthStackParamList = {
   LanguageConsent: undefined;
   Login: undefined;
+  OtpLogin: undefined;
   Signup: undefined;
   Consent: { mobileNumber: string; password: string; verified?: boolean };
   Profile: { mobileNumber: string; password: string };

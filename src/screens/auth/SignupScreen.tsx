@@ -13,12 +13,16 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const normalizeMobileNumber = (value: string) => value.trim().replace(/\s+/g, '');
+  const normalizeMobileNumber = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.startsWith('91') && digits.length === 12) return digits.slice(2);
+    return digits;
+  };
 
   const handleContinue = () => {
     const normalizedMobile = normalizeMobileNumber(mobileNumber);
 
-    if (normalizedMobile.length <= 5 || password.trim().length < 6) {
+    if (normalizedMobile.length !== 10 || password.trim().length < 6) {
       return;
     }
 
@@ -65,13 +69,17 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
               Mobile number
             </Typography>
             <View style={styles.inputWrapper}>
+              <View style={styles.prefixContainer}>
+                <Typography variant="bodySemibold" color={colors.inkSoft}>+91</Typography>
+              </View>
               <TextInput
                 style={styles.input}
-                placeholder="+91 ｜ Enter your number"
+                placeholder="Enter your number"
                 keyboardType="phone-pad"
                 value={mobileNumber}
                 onChangeText={setMobileNumber}
                 placeholderTextColor={colors.inkFaint}
+                maxLength={10}
                 autoFocus
               />
             </View>
@@ -121,7 +129,7 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
             title="Continue"
             variant="primary"
             onPress={handleContinue}
-            disabled={mobileNumber.length < 5 || password.trim().length < 6 || password.trim() !== confirmPassword.trim()}
+            disabled={normalizeMobileNumber(mobileNumber).length !== 10 || password.trim().length < 6 || password.trim() !== confirmPassword.trim()}
             style={styles.button}
           />
 
@@ -184,6 +192,14 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     borderRadius: layout.borderRadiusSmall,
     backgroundColor: colors.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  prefixContainer: {
+    paddingHorizontal: spacing.m,
+    borderRightWidth: 1.5,
+    borderColor: colors.line,
+    height: '100%',
     justifyContent: 'center',
   },
   input: {
@@ -192,6 +208,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.ink,
     fontFamily: 'Outfit',
+    ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
   },
   helperText: {
     marginBottom: spacing.m,

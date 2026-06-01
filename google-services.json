@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "757435269197",
+    "project_id": "soul-place-48870",
+    "storage_bucket": "soul-place-48870.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:757435269197:android:ec9240f026b12bd5d49c04",
+        "android_client_info": {
+          "package_name": "com.soulplace.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBs7Rbmkpd59Py-MTApLBwjyDeBUvcUCsc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
