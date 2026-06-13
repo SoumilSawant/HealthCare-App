@@ -1,86 +1,80 @@
 import React from 'react';
-import { View, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
 import { Typography } from '../../components/Typography';
-import { Card } from '../../components/Card';
 import { colors, spacing, layout } from '../../theme/theme';
-import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AssessStackParamList } from '../../navigation/types';
-import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
 type Props = NativeStackScreenProps<AssessStackParamList, 'AnalyzerResults'>;
 
-export const AnalyzerResultsScreen: React.FC<Props> = ({ route }) => {
+export const AnalyzerResultsScreen = ({ route, navigation }: Props) => {
   const { score } = route.params;
-  const navigation = useNavigation<any>();
-
-  let interpretation = "You're experiencing some mild stress, which is completely normal. A little self-care could go a long way.";
-  if (score > 4) {
-    interpretation = "You're dealing with moderate emotional strain. Speaking with a professional could help you navigate these feelings.";
-  }
-  if (score > 7) {
-    interpretation = "Your responses indicate significant distress. We strongly recommend booking a session with one of our experts.";
-  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        
-        <View style={styles.scoreHeader}>
-          <View style={styles.scoreCircle}>
-            <Typography variant="h1" color={colors.primary}>{score}</Typography>
-            <Typography variant="caption" color={colors.textSecondary}>/ 9</Typography>
-          </View>
-          <Typography variant="h3" color={colors.primary} style={{ marginTop: spacing.m }}>
-            Assessment Complete
+        <View style={styles.scoreRing}>
+          <Typography variant="display" color={colors.ink}>
+            {score}<Typography variant="h3" color={colors.inkSoft}>/15</Typography>
           </Typography>
-          <Typography variant="body" color={colors.textSecondary} align="center" style={{ marginTop: spacing.s, paddingHorizontal: spacing.l }}>
-            {interpretation}
+          <Typography variant="bodySemibold" color={colors.inkSoft} style={{ marginTop: 4 }}>
+            Moderate
           </Typography>
         </View>
 
-        <Typography variant="h3" color={colors.textPrimary} style={styles.actionTitle}>
-          Recommended Next Steps
+        <View style={[styles.card, { alignItems: 'center', marginBottom: spacing.xl }]}>
+          <Typography variant="body" color={colors.ink} align="center" style={{ lineHeight: 22 }}>
+            Your responses suggest <Typography variant="bodySemibold" color={colors.ink}>moderate stress</Typography>. This is common and very workable — here are good next steps.
+          </Typography>
+        </View>
+
+        <Typography variant="h3" color={colors.ink} style={{ marginBottom: spacing.m }}>
+          What would help most
         </Typography>
 
-        <View style={styles.actionMap}>
-          {/* Action 1 */}
-          <Card style={styles.actionCard} onPress={() => {}}>
-            <View style={[styles.iconBadge, { backgroundColor: '#E0F2FE' }]}>
-              <Ionicons name="call" size={24} color="#0284C7" />
-            </View>
-            <View style={styles.actionText}>
-              <Typography variant="bodySemibold" color={colors.textPrimary}>Short Consultation</Typography>
-              <Typography variant="caption" color={colors.textSecondary}>Quick 15-min call to gain clarity.</Typography>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
-          </Card>
+        <TouchableOpacity style={styles.cardRow} activeOpacity={0.8} onPress={() => navigation.navigate('Safety')}>
+          <View style={styles.avatar}>
+            <Typography variant="h3">💬</Typography>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Typography variant="bodySemibold" color={colors.ink}>Short Consultation</Typography>
+            <Typography variant="small" color={colors.inkSoft}>Quick session with a doctor</Typography>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.inkFaint} />
+        </TouchableOpacity>
 
-          {/* Action 2 */}
-          <Card style={styles.actionCard} onPress={() => navigation.navigate('DoctorDiscovery')}>
-            <View style={[styles.iconBadge, { backgroundColor: '#FEF08A' }]}>
-              <Ionicons name="medical" size={24} color="#CA8A04" />
+        <TouchableOpacity style={[styles.cardRow, styles.recommendedCard]} activeOpacity={0.8}>
+          <View style={[styles.avatar, { backgroundColor: colors.sage }]}>
+            <Typography variant="h3">⭐</Typography>
+          </View>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Typography variant="bodySemibold" color={colors.ink}>Expert Consultation</Typography>
+              <View style={styles.badge}>
+                <Typography variant="xs" color={colors.sageDeep} style={{ fontWeight: '600' }}>Recommended</Typography>
+              </View>
             </View>
-            <View style={styles.actionText}>
-              <Typography variant="bodySemibold" color={colors.textPrimary}>Book an Expert</Typography>
-              <Typography variant="caption" color={colors.textSecondary}>Detailed 45-min therapeutic session.</Typography>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
-          </Card>
+            <Typography variant="small" color={colors.inkSoft}>Full detailed session</Typography>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.inkFaint} />
+        </TouchableOpacity>
 
-          {/* Action 3 */}
-          <Card style={styles.actionCard} onPress={() => navigation.navigate('ResourcesTab')}>
-            <View style={[styles.iconBadge, { backgroundColor: '#DCFCE7' }]}>
-              <Ionicons name="library" size={24} color="#16A34A" />
-            </View>
-            <View style={styles.actionText}>
-              <Typography variant="bodySemibold" color={colors.textPrimary}>Resource Bank</Typography>
-              <Typography variant="caption" color={colors.textSecondary}>Self-help tools, meditation & reading.</Typography>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
-          </Card>
-        </View>
+        <TouchableOpacity style={styles.cardRow} activeOpacity={0.8}>
+          <View style={styles.avatar}>
+            <Typography variant="h3">📚</Typography>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Typography variant="bodySemibold" color={colors.ink}>Resource Bank</Typography>
+            <Typography variant="small" color={colors.inkSoft}>Self-help videos & articles</Typography>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.inkFaint} />
+        </TouchableOpacity>
 
+        <TouchableOpacity style={styles.btnGhost}>
+          <Typography variant="bodySemibold" color={colors.ink}>Save to my profile</Typography>
+        </TouchableOpacity>
+        
       </ScrollView>
     </SafeAreaView>
   );
@@ -89,51 +83,62 @@ export const AnalyzerResultsScreen: React.FC<Props> = ({ route }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.bg,
   },
   container: {
     padding: spacing.l,
-    paddingBottom: spacing.xxl,
+    paddingTop: spacing.xl,
   },
-  scoreHeader: {
+  scoreRing: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 6,
+    borderColor: colors.sage,
     alignItems: 'center',
-    marginVertical: spacing.xl,
-    paddingVertical: spacing.xl,
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: spacing.l,
+    borderTopColor: colors.lineSoft, // Simulating a partially filled ring
+  },
+  card: {
     backgroundColor: colors.surface,
-    borderRadius: layout.borderRadiusLarge,
+    borderRadius: layout.borderRadiusSmall,
+    padding: spacing.m,
     ...layout.shadowSubtle,
   },
-  scoreCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 4,
-    borderColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
-  },
-  actionTitle: {
-    marginTop: spacing.l,
-    marginBottom: spacing.m,
-  },
-  actionMap: {
-    gap: spacing.m,
-  },
-  actionCard: {
+  cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: layout.borderRadiusSmall,
     padding: spacing.m,
+    marginBottom: spacing.m,
+    gap: spacing.m,
+    ...layout.shadowSubtle,
   },
-  iconBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
+  recommendedCard: {
+    borderWidth: 2,
+    borderColor: colors.sage,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.bg,
     alignItems: 'center',
-    marginRight: spacing.m,
+    justifyContent: 'center',
   },
-  actionText: {
-    flex: 1,
+  badge: {
+    backgroundColor: colors.sageTint,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  btnGhost: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.s,
   },
 });

@@ -1,26 +1,60 @@
 import React from 'react';
-import { View, StyleSheet, SafeAreaView } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { MainTabsParamList } from './types';
-import { colors, spacing } from '../theme/theme';
+import { MainTabsParamList, AssessStackParamList, BookingStackParamList, SessionsStackParamList } from './types';
+import { colors } from '../theme/theme';
+
 import { HomeScreen } from '../screens/home/HomeScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
-import { Typography } from '../components/Typography';
+
+// Assess Stack
+import { MoodAnalyzerScreen } from '../screens/assess/MoodAnalyzerScreen';
+import { AssessmentScreen } from '../screens/assess/AssessmentScreen';
+import { AnalyzerResultsScreen } from '../screens/assess/AnalyzerResultsScreen';
+import { SafetyScreen } from '../screens/assess/SafetyScreen';
+
+// Booking Stack
+import { DoctorDiscoveryScreen } from '../screens/booking/DoctorDiscoveryScreen';
+import { DoctorProfileScreen } from '../screens/booking/DoctorProfileScreen';
+import { BookingScreen } from '../screens/booking/BookingScreen';
+import { BookingConfirmedScreen } from '../screens/booking/BookingConfirmedScreen';
+
+// Sessions Stack
+import { SessionsScreen } from '../screens/sessions/SessionsScreen';
+import { InSessionScreen } from '../screens/sessions/InSessionScreen';
+import { AfterSessionScreen } from '../screens/sessions/AfterSessionScreen';
 
 const Tab = createBottomTabNavigator<MainTabsParamList>();
+const AssessStack = createNativeStackNavigator<AssessStackParamList>();
+const BookingStack = createNativeStackNavigator<BookingStackParamList>();
+const SessionsStack = createNativeStackNavigator<SessionsStackParamList>();
 
-const PlaceholderTab = ({ title }: { title: string }) => (
-  <SafeAreaView style={styles.placeholderSafeArea}>
-    <View style={styles.placeholder}>
-      <Typography variant="displayXS" color={colors.ink} align="center">
-        {title}
-      </Typography>
-      <Typography variant="body" color={colors.inkSoft} align="center" style={{ marginTop: spacing.s }}>
-        Coming soon
-      </Typography>
-    </View>
-  </SafeAreaView>
+const ExploreStackNavigator = () => (
+  <AssessStack.Navigator screenOptions={{ headerShown: false }}>
+    <AssessStack.Screen name="MoodAnalyzer" component={MoodAnalyzerScreen} />
+    <AssessStack.Screen name="Assessment" component={AssessmentScreen} />
+    <AssessStack.Screen name="AnalyzerResults" component={AnalyzerResultsScreen} />
+    <AssessStack.Screen name="Safety" component={SafetyScreen} />
+  </AssessStack.Navigator>
+);
+
+const BookStackNavigator = () => (
+  <BookingStack.Navigator screenOptions={{ headerShown: false }}>
+    <BookingStack.Screen name="DoctorDiscovery" component={DoctorDiscoveryScreen} />
+    <BookingStack.Screen name="DoctorProfile" component={DoctorProfileScreen} />
+    <BookingStack.Screen name="Booking" component={BookingScreen} />
+    <BookingStack.Screen name="BookingConfirmed" component={BookingConfirmedScreen} />
+  </BookingStack.Navigator>
+);
+
+const SessionsStackNavigator = () => (
+  <SessionsStack.Navigator screenOptions={{ headerShown: false }}>
+    <SessionsStack.Screen name="SessionsList" component={SessionsScreen} />
+    <SessionsStack.Screen name="InSession" component={InSessionScreen} />
+    <SessionsStack.Screen name="AfterSession" component={AfterSessionScreen} />
+  </SessionsStack.Navigator>
 );
 
 export const MainTabs = () => {
@@ -30,8 +64,8 @@ export const MainTabs = () => {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: true,
-        tabBarActiveTintColor: '#0f766e',
-        tabBarInactiveTintColor: '#c2c2c2',
+        tabBarActiveTintColor: colors.sageDeep,
+        tabBarInactiveTintColor: colors.inkFaint,
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabLabel,
         tabBarItemStyle: styles.tabItem,
@@ -49,7 +83,7 @@ export const MainTabs = () => {
       />
       <Tab.Screen
         name="ExploreTab"
-        children={() => <PlaceholderTab title="Explore" />}
+        component={ExploreStackNavigator}
         options={{
           title: 'Explore',
           tabBarIcon: ({ color, focused }) => (
@@ -59,7 +93,7 @@ export const MainTabs = () => {
       />
       <Tab.Screen
         name="BookTab"
-        children={() => <PlaceholderTab title="Book" />}
+        component={BookStackNavigator}
         options={{
           title: 'Book',
           tabBarIcon: ({ color, focused }) => (
@@ -69,7 +103,7 @@ export const MainTabs = () => {
       />
       <Tab.Screen
         name="SessionsTab"
-        children={() => <PlaceholderTab title="Sessions" />}
+        component={SessionsStackNavigator}
         options={{
           title: 'Sessions',
           tabBarIcon: ({ color }) => (
@@ -94,32 +128,24 @@ export const MainTabs = () => {
 const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: colors.surface,
-    borderTopWidth: 0,
-    elevation: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.lineSoft,
+    elevation: 0,
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 18,
-    shadowOffset: { width: 0, height: -4 },
+    shadowOffset: { width: 0, height: -10 },
     height: 84,
     paddingBottom: 12,
     paddingTop: 10,
   },
   tabLabel: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '500',
     marginTop: 2,
+    fontFamily: 'Outfit',
   },
   tabItem: {
     paddingTop: 2,
-  },
-  placeholderSafeArea: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  placeholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.l,
   },
 });

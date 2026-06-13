@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Typography } from '../../components/Typography';
 import { colors, spacing, layout } from '../../theme/theme';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 
 const getTimeGreeting = (language: string) => {
   const hour = new Date().getHours();
@@ -53,6 +54,7 @@ const QuickCard = ({
 export const HomeScreen = () => {
   const { user, t, language } = useAuth();
   const { width } = useWindowDimensions();
+  const navigation = useNavigation<any>();
   const firstName = getFirstName(user?.fullName);
   const greeting = getTimeGreeting(language);
 
@@ -90,15 +92,17 @@ export const HomeScreen = () => {
             {t('moodCheckSubtitle')}
           </Typography>
 
-          <TouchableOpacity activeOpacity={0.9} style={styles.heroButton}>
+          <TouchableOpacity activeOpacity={0.9} style={styles.heroButton} onPress={() => navigation.navigate('ExploreTab')}>
             <Typography variant="bodySemibold" color={colors.surface} align="center">
               {t('startMoodCheck')}  →
             </Typography>
           </TouchableOpacity>
 
-          <Typography variant="bodySemibold" color="rgba(255,255,255,0.78)" align="center" style={styles.heroLink}>
-            {t('bookExpert')}
-          </Typography>
+          <TouchableOpacity onPress={() => navigation.navigate('BookTab')}>
+            <Typography variant="bodySemibold" color="rgba(255,255,255,0.78)" align="center" style={styles.heroLink}>
+              {t('bookExpert')}
+            </Typography>
+          </TouchableOpacity>
         </View>
 
         <Typography variant="small" color={colors.inkFaint} style={styles.sectionLabel}>
@@ -111,14 +115,14 @@ export const HomeScreen = () => {
             bg={colors.surface}
             width={quickCardWidth}
             icon={<MaterialCommunityIcons name="compass-outline" size={28} color="#d3a13f" />}
-            onPress={() => {}}
+            onPress={() => navigation.navigate('BookTab')}
           />
           <QuickCard
             title={t('resources')}
             bg={colors.surface}
             width={quickCardWidth}
             icon={<MaterialCommunityIcons name="view-grid-plus" size={28} color="#4a6fdc" />}
-            onPress={() => {}}
+            onPress={() => navigation.navigate('Resources')}
           />
           <QuickCard
             title={t('corporateWellness')}
@@ -133,7 +137,7 @@ export const HomeScreen = () => {
             width={quickCardWidth}
             titleColor="#db5348"
             icon={<View style={styles.sosBadge}><Typography variant="bodySemibold" color={colors.surface}>SOS</Typography></View>}
-            onPress={() => {}}
+            onPress={() => navigation.navigate('ExploreTab', { screen: 'Safety' })}
           />
         </View>
 

@@ -1,10 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
 import { Typography } from '../../components/Typography';
-import { Button } from '../../components/Button';
-import { Card } from '../../components/Card';
 import { colors, spacing, layout } from '../../theme/theme';
-import { mockAssessmentBuckets, mockAssessmentQuestions } from '../../data/mockData';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AssessStackParamList } from '../../navigation/types';
@@ -12,107 +9,58 @@ import { useNavigation } from '@react-navigation/native';
 
 type NavigationProp = NativeStackNavigationProp<AssessStackParamList, 'MoodAnalyzer'>;
 
+const BUCKETS = [
+  { id: '1', title: 'Individual wellbeing', icon: '🌱' },
+  { id: '2', title: 'Career counseling', icon: '💼' },
+  { id: '3', title: 'Adolescent counseling', icon: '🎒' },
+  { id: '4', title: 'Family counseling', icon: '🏠' },
+  { id: '5', title: 'Couple / marital', icon: '💞' },
+  { id: '6', title: 'Anxiety / Depression', icon: '🌧️' },
+];
+
 export const MoodAnalyzerScreen = () => {
   const navigation = useNavigation<NavigationProp>();
-  const [step, setStep] = useState<'bucket' | 'quiz'>('bucket');
-  const [selectedBucket, setSelectedBucket] = useState<string | null>(null);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, number>>({});
 
-  const handleStartQuiz = (bucketId: string) => {
-    setSelectedBucket(bucketId);
-    setStep('quiz');
+  const handleSelectBucket = (bucket: typeof BUCKETS[0]) => {
+    navigation.navigate('Assessment', { bucketId: bucket.id, title: bucket.title });
   };
-
-  const handleAnswer = (optionIndex: number) => {
-    const questionId = mockAssessmentQuestions[currentQuestionIndex].id;
-    setAnswers({ ...answers, [questionId]: optionIndex });
-    
-    if (currentQuestionIndex < mockAssessmentQuestions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-    } else {
-      // Calculate mock score
-      const totalScore = Object.values(answers).reduce((acc, val) => acc + val, 0) + optionIndex;
-      // Navigate to results
-      navigation.navigate('AnalyzerResults', { score: totalScore });
-      
-      // Reset state for future visits
-      setTimeout(() => {
-        setStep('bucket');
-        setCurrentQuestionIndex(0);
-        setAnswers({});
-      }, 1000);
-    }
-  };
-
-  if (step === 'bucket') {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.container}>
-          <View style={styles.header}>
-            <Typography variant="h2" color={colors.primary}>What brings you here?</Typography>
-            <Typography variant="body" color={colors.textSecondary} style={{ marginTop: spacing.s }}>
-              Select a category to personalize your assessment.
-            </Typography>
-          </View>
-          
-          <View style={styles.grid}>
-            {mockAssessmentBuckets.map((bucket) => (
-              <TouchableOpacity
-                key={bucket.id}
-                style={[styles.bucketCard, { backgroundColor: bucket.color }]}
-                onPress={() => handleStartQuiz(bucket.id)}
-                activeOpacity={0.8}
-              >
-                <Ionicons name={bucket.icon as any} size={32} color={colors.primary} />
-                <Typography variant="bodySemibold" color={colors.primary} align="center" style={{ marginTop: spacing.m }}>
-                  {bucket.title}
-                </Typography>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  const currentQuestion = mockAssessmentQuestions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex) / mockAssessmentQuestions.length) * 100;
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        {/* Progress Bar */}
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
-          </View>
-          <Typography variant="caption" color={colors.textSecondary} align="center" style={{ marginTop: spacing.s }}>
-            Question {currentQuestionIndex + 1} of {mockAssessmentQuestions.length}
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <Typography variant="displayXS" color={colors.ink} style={{ marginBottom: 4 }}>
+            What's on your mind?
+          </Typography>
+          <Typography variant="small" color={colors.inkSoft} style={{ marginBottom: 8 }}>
+            Pick one area. No wrong answers — this is a check-in, not a test.
           </Typography>
         </View>
 
-        <View style={styles.questionContainer}>
-          <Typography variant="h2" color={colors.primary} style={styles.questionText}>
-            {currentQuestion.text}
-          </Typography>
-
-          <View style={styles.optionsContainer}>
-            {currentQuestion.options.map((option, index) => (
-              <Card
-                key={index}
-                variant="outline"
-                style={styles.optionCard}
-                onPress={() => handleAnswer(index)}
-              >
-                <Typography variant="bodySemibold" color={colors.primary}>
-                  {option}
-                </Typography>
-              </Card>
-            ))}
-          </View>
+        <View style={styles.list}>
+          {BUCKETS.map((bucket) => (
+            <TouchableOpacity
+              key={bucket.id}
+              style={styles.card}
+              onPress={() => handleSelectBucket(bucket)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.cardLeft}>
+                <View style={styles.avatar}>
+                  <Typography variant="h2">{bucket.icon}</Typography>
+                </View>
+                <View>
+                  <Typography variant="bodySemibold" color={colors.ink}>
+                    {bucket.title}
+                  </Typography>
+                  <View style={styles.lineSm} />
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.inkFaint} />
+            </TouchableOpacity>
+          ))}
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -120,59 +68,45 @@ export const MoodAnalyzerScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.bg,
   },
   container: {
-    flex: 1,
     padding: spacing.l,
+    paddingTop: spacing.xxl,
   },
   header: {
-    marginBottom: spacing.xl,
-    marginTop: spacing.l,
+    marginBottom: spacing.l,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  bucketCard: {
-    width: '48%',
-    aspectRatio: 1,
-    borderRadius: layout.borderRadiusLarge,
-    padding: spacing.m,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.m,
-  },
-  progressContainer: {
-    marginTop: spacing.m,
-    marginBottom: spacing.xxl,
-  },
-  progressBarBg: {
-    height: 8,
-    backgroundColor: colors.border,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-  },
-  questionContainer: {
-    flex: 1,
-  },
-  questionText: {
-    marginBottom: spacing.xxl,
-    lineHeight: 36,
-  },
-  optionsContainer: {
+  list: {
     gap: spacing.m,
   },
-  optionCard: {
-    paddingVertical: spacing.l,
-    alignItems: 'center',
+  card: {
     backgroundColor: colors.surface,
-    borderColor: colors.secondaryLight,
-    borderWidth: 2,
+    borderRadius: layout.borderRadiusSmall,
+    padding: spacing.m,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    ...layout.shadowSubtle,
+  },
+  cardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.m,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lineSm: {
+    height: 3,
+    backgroundColor: colors.line,
+    borderRadius: 2,
+    marginTop: 6,
+    width: '70%',
   },
 });

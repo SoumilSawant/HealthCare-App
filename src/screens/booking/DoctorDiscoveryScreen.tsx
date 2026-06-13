@@ -1,118 +1,83 @@
-import React from 'react';
-import { View, StyleSheet, SafeAreaView, FlatList, Image, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
 import { Typography } from '../../components/Typography';
-import { Card } from '../../components/Card';
 import { colors, spacing, layout } from '../../theme/theme';
-import { mockDoctors } from '../../data/mockData';
-import { Ionicons } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { HomeStackParamList } from '../../navigation/types';
-import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../../context/AuthContext';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { BookingStackParamList } from '../../navigation/types';
 
-type NavigationProp = NativeStackNavigationProp<HomeStackParamList, 'DoctorDiscovery'>;
+type Props = NativeStackScreenProps<BookingStackParamList, 'DoctorDiscovery'>;
 
-// Helper to translate specialization dynamically
-const getSpecializationKey = (spec: string): any => {
-  switch (spec) {
-    case 'Clinical Psychologist': return 'clinicalPsychologist';
-    case 'Psychiatrist': return 'psychiatrist';
-    case 'Counseling Psychologist': return 'counselingPsychologist';
-    case 'Couples Therapist': return 'couplesTherapist';
-    default: return null;
-  }
-};
+const FILTERS = ['All', 'Marathi', 'Hindi', 'Top rated'];
 
-// Helper to translate city dynamically
-const getCityKey = (city: string): any => {
-  switch (city) {
-    case 'Mumbai': return 'mumbai';
-    case 'Delhi': return 'delhi';
-    case 'Bangalore': return 'bangalore';
-    case 'Pune': return 'pune';
-    default: return null;
-  }
-};
+const DOCTORS = [
+  { id: '1', name: 'Dr. A. Sharma', role: 'Clinical Psychologist', exp: '12 yrs', rating: '4.8', price: '₹800', icon: '👩‍⚕️' },
+  { id: '2', name: 'Dr. R. Patil', role: 'Psychiatrist', exp: '9 yrs', rating: '4.6', price: '₹1,200', icon: '👨‍⚕️' },
+  { id: '3', name: 'Dr. M. Khan', role: 'Counselor', exp: '6 yrs', rating: '4.9', price: '₹600', icon: '🧑‍⚕️' },
+];
 
-// Helper to translate experience dynamically
-const getExpKey = (exp: string): any => {
-  switch (exp) {
-    case '8 Years Exp.': return 'exp8';
-    case '12 Years Exp.': return 'exp12';
-    case '5 Years Exp.': return 'exp5';
-    case '10 Years Exp.': return 'exp10';
-    default: return null;
-  }
-};
-
-export const DoctorDiscoveryScreen = () => {
-  const navigation = useNavigation<NavigationProp>();
-  const { t } = useAuth();
-
-  const renderDoctor = ({ item }: { item: typeof mockDoctors[0] }) => {
-    const specKey = getSpecializationKey(item.specialization);
-    const cityKey = getCityKey(item.city);
-    const expKey = getExpKey(item.experience);
-
-    return (
-      <Card style={styles.doctorCard} variant="elevated">
-        <View style={styles.cardHeader}>
-          <Image source={{ uri: item.image }} style={styles.avatar} />
-          <View style={styles.infoContainer}>
-            <Typography variant="bodySemibold">{item.name}</Typography>
-            <Typography variant="caption" color={colors.primary}>
-              {specKey ? t(specKey) : item.specialization}
-            </Typography>
-            <View style={styles.metaRow}>
-              <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
-              <Typography variant="caption" color={colors.textSecondary} style={styles.metaText}>
-                {cityKey ? t(cityKey) : item.city}
-              </Typography>
-              <Typography variant="caption" color={colors.textLight}> • </Typography>
-              <Ionicons name="briefcase-outline" size={14} color={colors.textSecondary} />
-              <Typography variant="caption" color={colors.textSecondary} style={styles.metaText}>
-                {expKey ? t(expKey) : item.experience}
-              </Typography>
-            </View>
-          </View>
-        </View>
-        
-        <View style={styles.cardFooter}>
-          <View>
-            <Typography variant="caption" color={colors.textSecondary}>{t('consultationFee')}</Typography>
-            <Typography variant="bodySemibold" color={colors.primary}>
-              {item.price.replace('/ session', t('perSession'))}
-            </Typography>
-          </View>
-          <TouchableOpacity 
-            style={styles.bookButton}
-            onPress={() => navigation.navigate('Booking')}
-            activeOpacity={0.8}
-          >
-            <Typography variant="captionSemibold" color={colors.textInverse}>{t('bookSession')}</Typography>
-          </TouchableOpacity>
-        </View>
-      </Card>
-    );
-  };
+export const DoctorDiscoveryScreen = ({ navigation }: Props) => {
+  const [activeFilter, setActiveFilter] = useState('All');
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <FlatList
-        data={mockDoctors}
-        keyExtractor={item => item.id}
-        renderItem={renderDoctor}
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <Typography variant="h2" color={colors.primary}>{t('findExpert')}</Typography>
-            <Typography variant="body" color={colors.textSecondary} style={{ marginTop: spacing.s }}>
-              {t('findExpertSub')}
-            </Typography>
-          </View>
-        }
-      />
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <Typography variant="bodySemibold" color={colors.inkFaint} align="center">
+            Choose your doctor
+          </Typography>
+        </View>
+
+        <View style={styles.chipScroll}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.s }}>
+            {FILTERS.map(filter => (
+              <TouchableOpacity
+                key={filter}
+                style={[styles.chip, activeFilter === filter && styles.chipOn]}
+                onPress={() => setActiveFilter(filter)}
+                activeOpacity={0.8}
+              >
+                <Typography variant="bodySemibold" color={activeFilter === filter ? colors.sageDeep : colors.inkSoft}>
+                  {filter}
+                </Typography>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        <View style={styles.list}>
+          {DOCTORS.map(doc => (
+            <TouchableOpacity 
+              key={doc.id} 
+              style={styles.card} 
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('DoctorProfile', { doctorId: doc.id, name: doc.name })}
+            >
+              <View style={styles.avatar}>
+                <Typography variant="displayXS">{doc.icon}</Typography>
+              </View>
+              
+              <View style={styles.cardMid}>
+                <Typography variant="bodySemibold" color={colors.ink} style={{ fontWeight: '700' }}>{doc.name}</Typography>
+                <Typography variant="small" color={colors.inkSoft} style={{ marginVertical: 2 }}>{doc.role}</Typography>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Typography variant="xs" color={colors.inkSoft}>{doc.exp} · </Typography>
+                  <Typography variant="xs" color={colors.gold}>★ </Typography>
+                  <Typography variant="xs" color={colors.inkSoft}>{doc.rating}</Typography>
+                </View>
+              </View>
+              
+              <View style={styles.cardRight}>
+                <Typography variant="bodySemibold" color={colors.ink} style={{ fontWeight: '700' }}>{doc.price}</Typography>
+                <Typography variant="xs" color={colors.inkSoft} style={{ fontSize: 10 }}>for Nashik</Typography>
+                <View style={styles.badge}>
+                  <Typography variant="xs" color={colors.sageDeep} style={{ fontWeight: '600' }}>Today</Typography>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+        
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -120,52 +85,63 @@ export const DoctorDiscoveryScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.bg,
   },
   container: {
     padding: spacing.l,
-    paddingBottom: spacing.xxl,
+    paddingTop: spacing.s,
   },
   header: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.l,
   },
-  doctorCard: {
-    marginBottom: spacing.m,
+  chipScroll: {
+    marginBottom: spacing.l,
+    marginHorizontal: -spacing.l,
+    paddingHorizontal: spacing.l,
   },
-  cardHeader: {
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.lineSoft,
+  },
+  chipOn: {
+    borderColor: colors.sageDeep,
+    backgroundColor: colors.sageTint,
+  },
+  list: {
+    gap: spacing.m,
+  },
+  card: {
     flexDirection: 'row',
-    marginBottom: spacing.m,
+    backgroundColor: colors.surface,
+    borderRadius: layout.borderRadiusSmall,
+    padding: spacing.m,
+    gap: spacing.m,
+    alignItems: 'center',
+    ...layout.shadowSubtle,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    marginRight: spacing.m,
-  },
-  infoContainer: {
-    flex: 1,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.bg,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.xs,
+  cardMid: {
+    flex: 1,
   },
-  metaText: {
-    marginLeft: 4,
+  cardRight: {
+    alignItems: 'flex-end',
   },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: spacing.m,
-  },
-  bookButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.s,
-    paddingHorizontal: spacing.l,
-    borderRadius: layout.borderRadiusLarge,
+  badge: {
+    backgroundColor: colors.sageTint,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 5,
   },
 });

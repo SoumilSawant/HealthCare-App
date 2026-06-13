@@ -1,100 +1,120 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
 import { Typography } from '../../components/Typography';
-import { Button } from '../../components/Button';
 import { colors, spacing, layout } from '../../theme/theme';
-import { Ionicons } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { HomeStackParamList } from '../../navigation/types';
-import { useNavigation } from '@react-navigation/native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { BookingStackParamList } from '../../navigation/types';
 
-type NavigationProp = NativeStackNavigationProp<HomeStackParamList, 'Booking'>;
+type Props = NativeStackScreenProps<BookingStackParamList, 'Booking'>;
 
-const dates = ['12 May', '13 May', '14 May'];
-const times = ['10:00 AM', '11:30 AM', '2:00 PM', '4:30 PM', '6:00 PM'];
+const DATES = ['Today', 'Tomorrow', 'Wed', 'Thu'];
+const SLOTS = [
+  { time: '9:00', available: false },
+  { time: '10:30', available: true },
+  { time: '12:00', available: true },
+  { time: '3:00', available: true },
+  { time: '4:30', available: false },
+  { time: '6:00', available: true },
+];
 
-export const BookingScreen = () => {
-  const navigation = useNavigation<NavigationProp>();
-  const [selectedDate, setSelectedDate] = useState(dates[0]);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [isSuccess, setIsSuccess] = useState(false);
-
-  const handlePayment = () => {
-    // Simulate payment delay
-    setTimeout(() => {
-      setIsSuccess(true);
-    }, 1500);
-  };
-
-  if (isSuccess) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.successContainer}>
-          <View style={styles.successIconBadge}>
-            <Ionicons name="checkmark" size={64} color={colors.surface} />
-          </View>
-          <Typography variant="h2" color={colors.primary} style={{ marginTop: spacing.xl }}>Booking Confirmed!</Typography>
-          <Typography variant="body" color={colors.textSecondary} align="center" style={{ marginTop: spacing.s, paddingHorizontal: spacing.l }}>
-            Your session has been successfully scheduled. You will receive a meeting link shortly.
-          </Typography>
-          <Button 
-            title="Back to Home" 
-            onPress={() => navigation.navigate('Home')}
-            style={{ marginTop: spacing.xxl, width: '100%' }}
-          />
-        </View>
-      </SafeAreaView>
-    );
-  }
+export const BookingScreen = ({ navigation }: Props) => {
+  const [activeDate, setActiveDate] = useState('Today');
+  const [activeSlot, setActiveSlot] = useState('12:00');
+  const [consentChecked, setConsentChecked] = useState(true);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
-          <Typography variant="h2" color={colors.primary}>Select Time Slot</Typography>
+          <Typography variant="bodySemibold" color={colors.inkFaint} align="center">
+            Pick a time
+          </Typography>
         </View>
 
-        <Typography variant="h3" style={styles.sectionTitle}>Date</Typography>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollSection}>
-          {dates.map((date) => (
-            <TouchableOpacity 
-              key={date}
-              style={[styles.chip, selectedDate === date && styles.chipActive]}
-              onPress={() => setSelectedDate(date)}
+        <View style={styles.chipScroll}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.s }}>
+            {DATES.map(date => (
+              <TouchableOpacity
+                key={date}
+                style={[styles.chip, activeDate === date && styles.chipOn]}
+                onPress={() => setActiveDate(date)}
+                activeOpacity={0.8}
+              >
+                <Typography variant="bodySemibold" color={activeDate === date ? colors.sageDeep : colors.inkSoft}>
+                  {date}
+                </Typography>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        <View style={styles.slotsGrid}>
+          {SLOTS.map((slot, idx) => (
+            <TouchableOpacity
+              key={idx}
+              disabled={!slot.available}
+              style={[
+                styles.slotBtn,
+                !slot.available && styles.slotOff,
+                activeSlot === slot.time && styles.slotOn
+              ]}
+              onPress={() => setActiveSlot(slot.time)}
+              activeOpacity={0.8}
             >
-              <Typography variant="bodySemibold" color={selectedDate === date ? colors.surface : colors.textPrimary}>
-                {date}
+              <Typography 
+                variant="bodySemibold" 
+                color={
+                  !slot.available ? colors.inkFaint 
+                  : activeSlot === slot.time ? colors.sageDeep 
+                  : colors.ink
+                }
+              >
+                {slot.time}
               </Typography>
             </TouchableOpacity>
           ))}
-        </ScrollView>
-
-        <Typography variant="h3" style={[styles.sectionTitle, { marginTop: spacing.l }]}>Time</Typography>
-        <View style={styles.grid}>
-          {times.map((time) => (
-            <TouchableOpacity 
-              key={time}
-              style={[styles.timeChip, selectedTime === time && styles.timeChipActive]}
-              onPress={() => setSelectedTime(time)}
-            >
-              <Typography variant="body" color={selectedTime === time ? colors.surface : colors.textPrimary}>
-                {time}
-              </Typography>
-            </TouchableOpacity>
-          ))}
         </View>
+
+        <TouchableOpacity 
+          style={styles.consentItem} 
+          activeOpacity={0.8}
+          onPress={() => setConsentChecked(!consentChecked)}
+        >
+          <View style={[styles.check, consentChecked && styles.checkOn]}>
+            {consentChecked && <Typography variant="small" color={colors.surface} style={{ fontWeight: '700' }}>✓</Typography>}
+          </View>
+          <Typography variant="body" color={colors.ink} style={{ flex: 1 }}>
+            I've read the fees & refund policy and accept the teleconsultation disclaimer.
+          </Typography>
+        </TouchableOpacity>
+
+        <View style={styles.receiptCard}>
+          <View style={styles.receiptRow}>
+            <Typography variant="body" color={colors.ink}>Expert consultation</Typography>
+            <Typography variant="bodySemibold" color={colors.ink}>₹800</Typography>
+          </View>
+          <View style={[styles.receiptRow, { marginVertical: spacing.xs }]}>
+            <Typography variant="body" color={colors.inkSoft}>Platform fee</Typography>
+            <Typography variant="body" color={colors.inkSoft}>₹40</Typography>
+          </View>
+          <View style={styles.totalRow}>
+            <Typography variant="bodySemibold" color={colors.ink} style={{ fontSize: 16 }}>Total</Typography>
+            <Typography variant="bodySemibold" color={colors.ink} style={{ fontSize: 16 }}>₹840</Typography>
+          </View>
+        </View>
+
       </ScrollView>
 
       <View style={styles.footer}>
-        <View style={styles.totalRow}>
-          <Typography variant="body" color={colors.textSecondary}>Total Payable</Typography>
-          <Typography variant="h3" color={colors.primary}>₹1200</Typography>
-        </View>
-        <Button 
-          title="Proceed to Pay" 
-          onPress={handlePayment} 
-          disabled={!selectedTime}
-        />
+        <TouchableOpacity 
+          style={styles.btn} 
+          onPress={() => navigation.navigate('BookingConfirmed')}
+        >
+          <Typography variant="bodySemibold" color={colors.surface}>🔒 Pay securely · ₹840</Typography>
+        </TouchableOpacity>
+        <Typography variant="xs" color={colors.inkSoft} align="center" style={{ marginTop: spacing.s }}>
+          Cards · UPI · wallets
+        </Typography>
       </View>
     </SafeAreaView>
   );
@@ -103,78 +123,109 @@ export const BookingScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.bg,
   },
   container: {
     padding: spacing.l,
-    paddingBottom: spacing.xxl,
+    paddingTop: spacing.s,
+    paddingBottom: 100, // padding for footer
   },
   header: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.l,
   },
-  sectionTitle: {
-    marginBottom: spacing.m,
-  },
-  scrollSection: {
-    flexGrow: 0,
-    marginBottom: spacing.m,
+  chipScroll: {
+    marginBottom: spacing.l,
+    marginHorizontal: -spacing.l,
+    paddingHorizontal: spacing.l,
   },
   chip: {
-    paddingVertical: spacing.s,
-    paddingHorizontal: spacing.l,
-    borderRadius: layout.borderRadiusLarge,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginRight: spacing.m,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.lineSoft,
   },
-  chipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+  chipOn: {
+    borderColor: colors.sageDeep,
+    backgroundColor: colors.sageTint,
   },
-  grid: {
+  slotsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.m,
+    marginBottom: spacing.xl,
   },
-  timeChip: {
+  slotBtn: {
     width: '30%',
-    paddingVertical: spacing.m,
     alignItems: 'center',
+    paddingVertical: 12,
+    backgroundColor: colors.surface,
     borderRadius: layout.borderRadiusSmall,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.lineSoft,
   },
-  timeChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+  slotOff: {
+    backgroundColor: 'transparent',
+    opacity: 0.5,
   },
-  footer: {
-    padding: spacing.l,
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+  slotOn: {
+    borderColor: colors.sageDeep,
+    backgroundColor: colors.sageTint,
+  },
+  consentItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.m,
+    marginBottom: spacing.l,
+  },
+  check: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.inkSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  checkOn: {
+    borderColor: colors.sageDeep,
+    backgroundColor: colors.sageDeep,
+  },
+  receiptCard: {
+    backgroundColor: colors.surface2,
+    padding: spacing.m,
+    borderRadius: layout.borderRadiusSmall,
+  },
+  receiptRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.m,
+    paddingTop: spacing.m,
+    marginTop: spacing.s,
+    borderTopWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.line,
   },
-  successContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.xl,
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: spacing.l,
+    backgroundColor: colors.bg,
+    borderTopWidth: 1,
+    borderColor: colors.lineSoft,
   },
-  successIconBadge: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: colors.success,
-    justifyContent: 'center',
+  btn: {
+    backgroundColor: colors.sageDeep,
+    paddingVertical: 14,
+    borderRadius: layout.borderRadiusLarge,
     alignItems: 'center',
-    ...layout.shadow,
+    justifyContent: 'center',
   },
 });

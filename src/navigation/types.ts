@@ -21,18 +21,30 @@ export type MainTabsParamList = {
 
 export type HomeStackParamList = {
   Home: undefined;
-  DoctorDiscovery: undefined;
-  Booking: undefined;
+  Resources: undefined;
 };
 
 export type AssessStackParamList = {
   MoodAnalyzer: undefined;
+  Assessment: { bucketId: string; title: string };
   AnalyzerResults: { score: number };
+  Safety: undefined;
+};
+
+export type BookingStackParamList = {
+  DoctorDiscovery: undefined;
+  DoctorProfile: { doctorId: string; name: string };
+  Booking: { doctorId: string; slot: string };
+  BookingConfirmed: undefined;
+};
+
+export type SessionsStackParamList = {
+  SessionsList: undefined;
+  InSession: { sessionId: string };
+  AfterSession: { sessionId: string };
 };
 
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabsParamList>;
 };
-
-// Define screen props globally or use inline in components
