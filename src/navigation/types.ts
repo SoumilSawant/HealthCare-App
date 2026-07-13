@@ -44,6 +44,16 @@ export type SessionsStackParamList = {
   AfterSession: { sessionId: string };
 };
 
+export type ProfileStackParamList = {
+  Profile: undefined;
+  PastConsultations: undefined;
+  NotesPrescriptions: undefined;
+  SavedResources: undefined;
+  PaymentMethods: undefined;
+  Settings: undefined;
+  HelpSupport: undefined;
+};
+
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabsParamList>;

@@ -16,8 +16,13 @@ import { colors, spacing, layout } from '../../theme/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { ProfileStackParamList } from '../../navigation/types';
+
 export const ProfileScreen = () => {
   const { logout, user, updateUser, t } = useAuth();
+  const navigation = useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
   
   const [modalVisible, setModalVisible] = useState(false);
   const [name, setName] = useState('');
@@ -50,12 +55,12 @@ export const ProfileScreen = () => {
   };
 
   const menuItems = [
-    { id: '1', title: t('pastConsultations'), icon: 'time-outline' },
-    { id: '2', title: t('notesPrescriptions'), icon: 'document-text-outline' },
-    { id: '3', title: t('savedResources'), icon: 'bookmark-outline' },
-    { id: '4', title: t('paymentMethods'), icon: 'card-outline' },
-    { id: '5', title: t('settings'), icon: 'settings-outline' },
-    { id: '6', title: t('helpSupport'), icon: 'help-circle-outline' },
+    { id: '1', title: t('pastConsultations'), icon: 'time-outline', route: 'PastConsultations' as const },
+    { id: '2', title: t('notesPrescriptions'), icon: 'document-text-outline', route: 'NotesPrescriptions' as const },
+    { id: '3', title: t('savedResources'), icon: 'bookmark-outline', route: 'SavedResources' as const },
+    { id: '4', title: t('paymentMethods'), icon: 'card-outline', route: 'PaymentMethods' as const },
+    { id: '5', title: t('settings'), icon: 'settings-outline', route: 'Settings' as const },
+    { id: '6', title: t('helpSupport'), icon: 'help-circle-outline', route: 'HelpSupport' as const },
   ];
 
   return (
@@ -107,6 +112,7 @@ export const ProfileScreen = () => {
             <TouchableOpacity 
               key={item.id} 
               style={[styles.menuItem, index !== menuItems.length - 1 && styles.menuItemBorder]}
+              onPress={() => navigation.navigate(item.route)}
             >
               <View style={styles.menuItemLeft}>
                 <Ionicons name={item.icon as any} size={24} color={colors.textSecondary} />

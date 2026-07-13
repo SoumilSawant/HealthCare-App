@@ -26,10 +26,19 @@ import { SessionsScreen } from '../screens/sessions/SessionsScreen';
 import { InSessionScreen } from '../screens/sessions/InSessionScreen';
 import { AfterSessionScreen } from '../screens/sessions/AfterSessionScreen';
 
+// Profile Stack
+import { PastConsultationsScreen } from '../screens/profile/PastConsultationsScreen';
+import { NotesPrescriptionsScreen } from '../screens/profile/NotesPrescriptionsScreen';
+import { SavedResourcesScreen } from '../screens/profile/SavedResourcesScreen';
+import { PaymentMethodsScreen } from '../screens/profile/PaymentMethodsScreen';
+import { SettingsScreen } from '../screens/profile/SettingsScreen';
+import { HelpSupportScreen } from '../screens/profile/HelpSupportScreen';
+
 const Tab = createBottomTabNavigator<MainTabsParamList>();
 const AssessStack = createNativeStackNavigator<AssessStackParamList>();
 const BookingStack = createNativeStackNavigator<BookingStackParamList>();
 const SessionsStack = createNativeStackNavigator<SessionsStackParamList>();
+const ProfileStack = createNativeStackNavigator<any>();
 
 const ExploreStackNavigator = () => (
   <AssessStack.Navigator screenOptions={{ headerShown: false }}>
@@ -55,6 +64,18 @@ const SessionsStackNavigator = () => (
     <SessionsStack.Screen name="InSession" component={InSessionScreen} />
     <SessionsStack.Screen name="AfterSession" component={AfterSessionScreen} />
   </SessionsStack.Navigator>
+);
+
+const ProfileStackNavigator = () => (
+  <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
+    <ProfileStack.Screen name="Profile" component={ProfileScreen} />
+    <ProfileStack.Screen name="PastConsultations" component={PastConsultationsScreen} />
+    <ProfileStack.Screen name="NotesPrescriptions" component={NotesPrescriptionsScreen} />
+    <ProfileStack.Screen name="SavedResources" component={SavedResourcesScreen} />
+    <ProfileStack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
+    <ProfileStack.Screen name="Settings" component={SettingsScreen} />
+    <ProfileStack.Screen name="HelpSupport" component={HelpSupportScreen} />
+  </ProfileStack.Navigator>
 );
 
 export const MainTabs = () => {
@@ -113,7 +134,7 @@ export const MainTabs = () => {
       />
       <Tab.Screen
         name="ProfileTab"
-        component={ProfileScreen}
+        component={ProfileStackNavigator}
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
