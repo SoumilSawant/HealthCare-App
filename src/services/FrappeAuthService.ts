@@ -194,6 +194,114 @@ class FrappeAuthService {
       return null;
     }
   }
+
+  // ─────────────────────────────────────────────
+  //  Doctor Authentication Methods
+  // ─────────────────────────────────────────────
+
+  private static readonly DOCTOR_PREFIX = '@soulplace/doctor/';
+
+  private static getDoctorKey(email: string): string {
+    return `${this.DOCTOR_PREFIX}${email.toLowerCase().trim()}`;
+  }
+
+  /**
+   * Register a new doctor (saves locally + calls Frappe API when available)
+   */
+  static async registerDoctor(doctorData: DoctorRegistrationData): Promise<void> {
+    const key = this.getDoctorKey(doctorData.email);
+    const record: StoredDoctor = {
+      ...doctorData,
+      approvalStatus: 'pending',
+      registeredAt: new Date().toISOString(),
+    };
+    await AsyncStorage.setItem(key, JSON.stringify(record));
+
+    // TODO: Replace mock with real Frappe endpoint when available
+    // await fetch(`${FRAPPE_BASE_URL}/api/method/soul_place.api.register_doctor`, {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json', 'X-Frappe-CSRF-Token': await this.getCsrfToken() },
+    //   body: JSON.stringify(doctorData),
+    // });
+    console.log('[Mock] Doctor registration saved locally:', doctorData.email);
+  }
+
+  /**
+   * Login a doctor with email + password
+   */
+  static async loginDoctor(email: string, password: string): Promise<StoredDoctor> {
+    const key = this.getDoctorKey(email);
+    const raw = await AsyncStorage.getItem(key);
+
+    if (!raw) throw new Error('No doctor account found with this email. Please register first.');
+
+    const doctor: StoredDoctor = JSON.parse(raw);
+    if (doctor.password !== password) throw new Error('Incorrect password. Please try again.');
+
+    // TODO: Also verify with Frappe when backend is live
+    // const response = await fetch(`${FRAPPE_BASE_URL}/api/method/soul_place.api.doctor_login`, { ... });
+
+    return doctor;
+  }
+
+  /**
+   * Get latest approval status for a doctor (re-checks Frappe if available)
+   */
+  static async getDoctorApprovalStatus(email: string): Promise<'pending' | 'approved' | 'rejected'> {
+    const key = this.getDoctorKey(email);
+    const raw = await AsyncStorage.getItem(key);
+    if (!raw) return 'pending';
+
+    const doctor: StoredDoctor = JSON.parse(raw);
+
+    // TODO: Fetch real status from Frappe admin panel when available
+    // try {
+    //   const response = await fetch(`${FRAPPE_BASE_URL}/api/method/soul_place.api.get_doctor_status?email=${email}`);
+    //   const data = await response.json();
+    //   if (data.message?.status) {
+    //     doctor.approvalStatus = data.message.status;
+    //     doctor.rejectionReason = data.message.reason;
+    //     await AsyncStorage.setItem(key, JSON.stringify(doctor));
+    //   }
+    // } catch { /* backend not ready */ }
+
+    return doctor.approvalStatus;
+  }
+
+  /**
+   * Update a doctor's local record (used when admin approval status changes)
+   */
+  static async updateDoctorStatus(
+    email: string,
+    status: 'pending' | 'approved' | 'rejected',
+    reason?: string,
+  ): Promise<void> {
+    const key = this.getDoctorKey(email);
+    const raw = await AsyncStorage.getItem(key);
+    if (!raw) return;
+    const doctor: StoredDoctor = JSON.parse(raw);
+    doctor.approvalStatus = status;
+    if (reason) doctor.rejectionReason = reason;
+    await AsyncStorage.setItem(key, JSON.stringify(doctor));
+  }
+}
+
+export interface DoctorRegistrationData {
+  fullName: string;
+  email: string;
+  mobileNumber: string;
+  password: string;
+  specialization: string;
+  yearsOfExperience: number;
+  medicalRegNumber: string;
+  languages: string[];
+  degreeCertificatePath?: string; // TODO: actual file upload
+}
+
+export interface StoredDoctor extends DoctorRegistrationData {
+  approvalStatus: 'pending' | 'approved' | 'rejected';
+  registeredAt: string;
+  rejectionReason?: string;
 }
 
 export default FrappeAuthService;

@@ -255,6 +255,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: spacing.ml,
     paddingVertical: spacing.m,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
   },
   progressContainer: {
     marginBottom: spacing.l,

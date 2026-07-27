@@ -30,6 +30,8 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', padding: spacing.l, borderBottomWidth: 1, borderBottomColor: colors.lineSoft },
   backButton: { marginRight: spacing.m },
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
+  container: {
+    width: '100%', maxWidth: 768, alignSelf: 'center',
+ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
   icon: { marginBottom: spacing.m },
 });

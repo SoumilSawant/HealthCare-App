@@ -104,6 +104,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: spacing.l,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
   },
   header: {
     marginTop: spacing.xl,

@@ -9,15 +9,23 @@ import { RootStackParamList } from './types';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const AppNavigator = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+
+  // Doctors with pending/rejected approval stay in the auth flow
+  const isDoctorPendingOrRejected =
+    isAuthenticated &&
+    user?.role === 'doctor' &&
+    user?.approvalStatus !== 'approved';
+
+  const showMain = isAuthenticated && !isDoctorPendingOrRejected;
 
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!isAuthenticated ? (
-          <Stack.Screen name="Auth" component={AuthStack} />
-        ) : (
+        {showMain ? (
           <Stack.Screen name="Main" component={MainTabs} />
+        ) : (
+          <Stack.Screen name="Auth" component={AuthStack} />
         )}
       </Stack.Navigator>
     </NavigationContainer>

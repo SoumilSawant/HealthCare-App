@@ -10,12 +10,19 @@ export interface User {
   gender?: string;
   livingStatus?: 'family' | 'alone';
   therapyExperience?: boolean;
+  // Doctor-specific fields
+  role: 'patient' | 'doctor';
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  specialization?: string;
+  medicalRegNumber?: string;
+  rejectionReason?: string;
 }
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (userData: User) => void;
+  login: (userData: Omit<User, 'role'> & { role?: 'patient' | 'doctor' }) => void;
+  loginAsDoctor: (userData: User) => void;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
   language: LanguageType;
@@ -29,6 +36,7 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   user: null,
   login: () => {},
+  loginAsDoctor: () => {},
   logout: () => {},
   updateUser: () => {},
   language: 'en',
@@ -44,8 +52,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [language, setLanguageState] = useState<LanguageType>('en');
   const [loading, setLoading] = useState(false);
 
-  const login = (userData: User) => {
-    setUser(userData);
+  const login = (userData: Omit<User, 'role'> & { role?: 'patient' | 'doctor' }) => {
+    const { role, ...rest } = userData;
+    setUser({ ...rest, role: role ?? 'patient' } as User);
+    setIsAuthenticated(true);
+  };
+
+  const loginAsDoctor = (userData: User) => {
+    setUser({ role: 'doctor', ...userData });
     setIsAuthenticated(true);
   };
 
@@ -73,6 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAuthenticated,
         user,
         login,
+        loginAsDoctor,
         logout,
         updateUser,
         language,

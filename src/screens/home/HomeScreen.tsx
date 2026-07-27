@@ -168,6 +168,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   container: {
+    width: '100%', maxWidth: 768, alignSelf: 'center',
+
     paddingHorizontal: spacing.ml,
     paddingTop: spacing.s,
     paddingBottom: spacing.xxl,

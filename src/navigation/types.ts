@@ -9,6 +9,9 @@ export type AuthStackParamList = {
   Signup: undefined;
   Consent: { mobileNumber: string; password: string; verified?: boolean };
   Profile: { mobileNumber: string; password: string };
+  DoctorLogin: undefined;
+  DoctorRegister: undefined;
+  DoctorPending: { email: string; reason?: string };
 };
 
 export type MainTabsParamList = {

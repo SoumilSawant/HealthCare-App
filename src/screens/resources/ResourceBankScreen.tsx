@@ -150,6 +150,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   contentContainer: {
+    width: '100%', maxWidth: 768, alignSelf: 'center',
+
     padding: spacing.m,
   },
   title: {

@@ -78,71 +78,76 @@ const ProfileStackNavigator = () => (
   </ProfileStack.Navigator>
 );
 
+import { WebLayout } from '../components/WebLayout';
+import { Platform } from 'react-native';
+
 export const MainTabs = () => {
   return (
-    <Tab.Navigator
-      initialRouteName="HomeTab"
-      screenOptions={{
-        headerShown: false,
-        tabBarShowLabel: true,
-        tabBarActiveTintColor: colors.sageDeep,
-        tabBarInactiveTintColor: colors.inkFaint,
-        tabBarStyle: styles.tabBar,
-        tabBarLabelStyle: styles.tabLabel,
-        tabBarItemStyle: styles.tabItem,
-      }}
-    >
-      <Tab.Screen
-        name="HomeTab"
-        component={HomeScreen}
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color, focused }) => (
-            <MaterialCommunityIcons name={focused ? 'home-variant' : 'home-outline'} size={24} color={color} />
-          ),
+    <WebLayout>
+      <Tab.Navigator
+        initialRouteName="HomeTab"
+        screenOptions={{
+          headerShown: false,
+          tabBarShowLabel: true,
+          tabBarActiveTintColor: colors.sageDeep,
+          tabBarInactiveTintColor: colors.inkFaint,
+          tabBarStyle: Platform.OS === 'web' ? { display: 'none' } : styles.tabBar,
+          tabBarLabelStyle: styles.tabLabel,
+          tabBarItemStyle: styles.tabItem,
         }}
-      />
-      <Tab.Screen
-        name="ExploreTab"
-        component={ExploreStackNavigator}
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'compass' : 'compass-outline'} size={24} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="BookTab"
-        component={BookStackNavigator}
-        options={{
-          title: 'Book',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'add-circle' : 'add-circle-outline'} size={30} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="SessionsTab"
-        component={SessionsStackNavigator}
-        options={{
-          title: 'Sessions',
-          tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons name="calendar-month-outline" size={24} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="ProfileTab"
-        component={ProfileStackNavigator}
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
-          ),
-        }}
-      />
-    </Tab.Navigator>
+      >
+        <Tab.Screen
+          name="HomeTab"
+          component={HomeScreen}
+          options={{
+            title: 'Home',
+            tabBarIcon: ({ color, focused }) => (
+              <MaterialCommunityIcons name={focused ? 'home-variant' : 'home-outline'} size={24} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="ExploreTab"
+          component={ExploreStackNavigator}
+          options={{
+            title: 'Explore',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'compass' : 'compass-outline'} size={24} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="BookTab"
+          component={BookStackNavigator}
+          options={{
+            title: 'Book',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'add-circle' : 'add-circle-outline'} size={30} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="SessionsTab"
+          component={SessionsStackNavigator}
+          options={{
+            title: 'Sessions',
+            tabBarIcon: ({ color }) => (
+              <MaterialCommunityIcons name="calendar-month-outline" size={24} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="ProfileTab"
+          component={ProfileStackNavigator}
+          options={{
+            title: 'Profile',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
+            ),
+          }}
+        />
+      </Tab.Navigator>
+    </WebLayout>
   );
 };
 

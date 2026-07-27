@@ -162,7 +162,7 @@ export const OtpLoginScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.bg },
   container: { flex: 1 },
-  scrollContent: { padding: spacing.ml, paddingVertical: spacing.l },
+  scrollContent: { padding: spacing.ml, paddingVertical: spacing.l, width: '100%', maxWidth: 480, alignSelf: 'center' },
   backButton: { marginBottom: spacing.m },
   logoContainer: { alignItems: 'center', marginBottom: spacing.l },
   logoMark: { width: 60, height: 60, borderRadius: 20, backgroundColor: colors.sage, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.m },

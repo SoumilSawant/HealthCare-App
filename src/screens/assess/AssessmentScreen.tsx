@@ -119,6 +119,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   container: {
+    width: '100%', maxWidth: 768, alignSelf: 'center',
+
     flex: 1,
     padding: spacing.l,
   },

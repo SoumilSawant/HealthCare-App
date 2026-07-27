@@ -329,6 +329,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   container: {
+    width: '100%', maxWidth: 768, alignSelf: 'center',
+
     padding: spacing.l,
     paddingBottom: spacing.xxl,
   },
