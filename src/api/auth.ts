@@ -98,7 +98,7 @@ export const authApi = {
     if (DEMO_MODE) {
       return Promise.resolve(demoRestoreSession().username ?? "Guest");
     }
-    return request<string>("/api/method/frappe.auth.get_logged_user");
+    return callRpc<any>("soulplace.api.get_portal_identity", {}, true).then(res => res.username || "Guest").catch(() => "Guest");
   },
 
   registerPatient(input: {
@@ -141,98 +141,24 @@ export const authApi = {
 
   async restore(): Promise<AuthSession> {
     if (DEMO_MODE) return demoRestoreSession();
-    const username = await this.getLoggedUser();
-    if (!username || username === "Guest") {
+    try {
+      const identity = await callRpc<any>("soulplace.api.get_portal_identity", {}, true);
+      
+      if (identity.status === "anonymous" || !identity.username || identity.username === "Guest") {
+        return { status: "anonymous", roles: [] };
+      }
+      
+      return {
+        status: "authenticated",
+        username: identity.username,
+        fullName: identity.fullName,
+        roles: identity.roles || [],
+        portal: identity.portal,
+        patient: identity.patient,
+        doctor: identity.doctor
+      };
+    } catch (e) {
       return { status: "anonymous", roles: [] };
     }
-
-    let roles: string[] = [];
-    let fullName = username;
-    try {
-      const user = await getRecord<UserDocument & { name: string }>(
-        "User",
-        username
-      );
-      roles = user.roles?.map((entry) => entry.role) ?? [];
-      fullName = user.full_name || username;
-    } catch {
-      if (username === "Administrator") roles = ["System Manager"];
-    }
-
-    const adminRoles = (import.meta.env.VITE_ADMIN_ROLES ||
-      "System Manager,SoulPlace Admin")
-      .split(",")
-      .map((role) => role.trim());
-    if (username === "Administrator" || roles.some((r) => adminRoles.includes(r))) {
-      return {
-        status: "authenticated",
-        username,
-        fullName,
-        roles,
-        portal: "admin"
-      };
-    }
-
-    try {
-      const patients = await listRecords<PatientUser>("PatientUser", {
-        fields: ["*"],
-        filters: [["app_user", "=", username]],
-        limitPageLength: 1
-      });
-      if (patients.data[0]) {
-        return {
-          status: "authenticated",
-          username,
-          fullName: patients.data[0].name1 || fullName,
-          roles,
-          portal: "patient",
-          patient: patients.data[0]
-        };
-      }
-    } catch {
-      // Try doctor identity before reporting a role resolution failure.
-    }
-
-    const doctors = await listRecords<Doctor>("Doctor", {
-      fields: ["*"],
-      filters: [["email", "=", username]],
-      limitPageLength: 1
-    });
-    if (doctors.data[0]) {
-      return {
-        status: "authenticated",
-        username,
-        fullName: doctors.data[0].full_name || fullName,
-        roles,
-        portal: "doctor",
-        doctor: doctors.data[0]
-      };
-    }
-
-    // Backward compatibility for the current backend, which does not set app_user.
-    const phone = username.endsWith("@soulplace.local")
-      ? username.replace("@soulplace.local", "")
-      : "";
-    if (phone) {
-      const patients = await listRecords<PatientUser>("PatientUser", {
-        fields: ["*"],
-        filters: [["phoneno", "=", phone]],
-        limitPageLength: 1
-      });
-      if (patients.data[0]) {
-        return {
-          status: "authenticated",
-          username,
-          fullName: patients.data[0].name1 || fullName,
-          roles,
-          portal: "patient",
-          patient: patients.data[0]
-        };
-      }
-    }
-
-    throw new Error(
-      "Your account is authenticated, but no SoulPlace portal profile is linked."
-    );
   }
 };

@@ -271,6 +271,65 @@ export function DoctorAppointmentDetailPage() {
   );
 }
 
+type ScheduleData = {
+  [day: string]: {
+    [category: string]: string[];
+  };
+};
+
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const CATEGORIES = ["Morning", "Afternoon", "Evening", "Night"];
+const TIME_OPTIONS = {
+  Morning: ["06:00", "06:30", "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30"],
+  Afternoon: ["12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"],
+  Evening: ["18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30"],
+  Night: ["22:00", "22:30", "23:00", "23:30", "00:00", "00:30", "01:00", "01:30", "02:00", "02:30", "03:00", "03:30", "04:00", "04:30", "05:00", "05:30"]
+};
+
+function ScheduleEditor({ value, onChange }: { value: ScheduleData; onChange: (v: ScheduleData) => void }) {
+  const [activeDay, setActiveDay] = useState(DAYS[0]);
+  
+  const toggleTime = (category: string, time: string) => {
+    const dayData = value[activeDay] || {};
+    const catData = dayData[category] || [];
+    const newCatData = catData.includes(time) ? catData.filter(t => t !== time) : [...catData, time].sort();
+    onChange({ ...value, [activeDay]: { ...dayData, [category]: newCatData } });
+  };
+  
+  return (
+    <div className="schedule-editor">
+      <div className="schedule-days">
+        {DAYS.map(day => {
+          const isActive = Object.values(value[day] || {}).flat().length > 0;
+          return (
+            <button key={day} type="button" className={`day-pill ${activeDay === day ? "active" : ""} ${isActive ? "has-slots" : ""}`} onClick={() => setActiveDay(day)}>
+              {day.slice(0, 3)}
+              {isActive && <span className="indicator" />}
+            </button>
+          );
+        })}
+      </div>
+      <div className="schedule-categories">
+        {CATEGORIES.map(cat => (
+          <div key={cat} className="schedule-category">
+            <h4>{cat}</h4>
+            <div className="time-grid">
+              {TIME_OPTIONS[cat as keyof typeof TIME_OPTIONS].map(time => {
+                const selected = (value[activeDay]?.[cat] || []).includes(time);
+                return (
+                  <button key={time} type="button" className={`time-pill ${selected ? "selected" : ""}`} onClick={() => toggleTime(cat, time)}>
+                    {time}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function DoctorAvailabilityPage() {
   const auth = useAuth();
   const toast = useToast();
@@ -278,13 +337,24 @@ export function DoctorAvailabilityPage() {
   const [status, setStatus] = useState(auth.doctor?.status || "Inactive");
   const [teleconsult, setTeleconsult] = useState(Boolean(auth.doctor?.teleconsult_enabled));
   const [duration, setDuration] = useState(String(auth.doctor?.avg_consult_duration_mins || 30));
+  
+  const [scheduleData, setScheduleData] = useState<ScheduleData>(() => {
+    try {
+      return JSON.parse(auth.doctor?.schedule_json || "{}");
+    } catch {
+      return {};
+    }
+  });
+
   const mutation = useMutation({
-    mutationFn: () => doctorsApi.update(auth.doctor?.name || "", {
-      availability,
-      status,
-      teleconsult_enabled: teleconsult ? 1 : 0,
-      avg_consult_duration_mins: Number(duration)
-    }),
+    mutationFn: async () => {
+      await doctorsApi.saveSchedule(JSON.stringify(scheduleData), availability);
+      await doctorsApi.update(auth.doctor?.name || "", {
+        status,
+        teleconsult_enabled: teleconsult ? 1 : 0,
+        avg_consult_duration_mins: Number(duration)
+      });
+    },
     onSuccess: () => { toast.notify("Availability updated."); void auth.restore(); }
   });
   return (
@@ -294,19 +364,23 @@ export function DoctorAvailabilityPage() {
         <section className="panel">
           <div className="availability-status"><div><span className={status === "Active" ? "online" : ""} /><div><small>Booking status</small><strong>{status}</strong></div></div><label className="toggle-field"><input type="checkbox" checked={status === "Active"} onChange={(event) => setStatus(event.target.checked ? "Active" : "Inactive")} /><span /></label></div>
           <form className="form-grid" onSubmit={(event) => { event.preventDefault(); mutation.mutate(); }}>
-            <TextAreaField label="Availability summary" value={availability} onChange={(event) => setAvailability(event.target.value)} placeholder="Example: Monday–Friday, 9:00–17:00" hint="Doctor.availability is a Data field; working-day/hour structure is not present in the backend." />
-            <FormField label="Consultation duration (minutes)" type="number" min={5} step={5} value={duration} onChange={(event) => setDuration(event.target.value)} />
-            <label className="toggle-field"><input type="checkbox" checked={teleconsult} onChange={(event) => setTeleconsult(event.target.checked)} /><span /> Enable teleconsultations</label>
+            <div className="form-grid two-column"><FormField label="Consultation duration (minutes)" type="number" min={5} step={5} value={duration} onChange={(event) => setDuration(event.target.value)} /><label className="toggle-field" style={{marginTop: "2rem"}}><input type="checkbox" checked={teleconsult} onChange={(event) => setTeleconsult(event.target.checked)} /><span /> Enable teleconsultations</label></div>
+            
+            <div className="schedule-section" style={{ marginTop: "1rem" }}>
+              <h3>Structured Schedule</h3>
+              <p className="text-secondary" style={{ marginBottom: "1rem" }}>Select the exact times you are available for consultations.</p>
+              <ScheduleEditor value={scheduleData} onChange={setScheduleData} />
+            </div>
+
+            <TextAreaField label="Availability note (Optional)" value={availability} onChange={(event) => setAvailability(event.target.value)} placeholder="Example: Out of office on public holidays" hint="This is a free text field shown to patients." />
+            
             {mutation.isError && <ErrorState error={mutation.error} />}
             <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? "Saving…" : "Save availability"}</Button>
           </form>
         </section>
         <aside className="panel effective-calendar">
           <h2>Effective availability</h2>
-          <div className="calendar-placeholder"><CalendarDays /><strong>{availability || "No schedule configured"}</strong><p>Schedule exceptions are evaluated separately.</p></div>
-          <IntegrationNotice title="Structured schedule missing">
-            Working days and hours cannot be stored without inventing fields. Add a schedule DocType or RPC before slot generation.
-          </IntegrationNotice>
+          <div className="calendar-placeholder"><CalendarDays /><strong>{availability || "Schedule configured via slots"}</strong><p>Schedule exceptions are evaluated separately.</p></div>
         </aside>
       </div>
     </>

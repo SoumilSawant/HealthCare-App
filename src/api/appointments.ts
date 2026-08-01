@@ -24,33 +24,33 @@ export type AppointmentCreate = Pick<
 
 export const appointmentsApi = {
   list(options?: ListOptions<Appointment>) {
-    return listRecords<Appointment>("Appointment", {
+    return listRecords<Appointment>("Patient Appointment", {
       fields: ["*"],
       ...options
     });
   },
   get(name: string) {
-    return getRecord<Appointment>("Appointment", name);
+    return getRecord<Appointment>("Patient Appointment", name);
   },
-  create(values: AppointmentCreate) {
-    return createRecord<Appointment>("Appointment", values);
+  create(values: Omit<Partial<Appointment>, "name">) {
+    return createRecord<Appointment>("Patient Appointment", values);
   },
   update(name: string, values: Partial<Appointment>) {
-    return updateRecord<Appointment>("Appointment", name, values);
+    return updateRecord<Appointment>("Patient Appointment", name, values);
   },
   cancel(name: string, reason: string) {
-    return updateRecord<Appointment>("Appointment", name, {
+    return updateRecord<Appointment>("Patient Appointment", name, {
       status: "Cancelled",
       cancel_reason: reason
     });
   },
   confirm(name: string) {
-    return updateRecord<Appointment>("Appointment", name, {
+    return updateRecord<Appointment>("Patient Appointment", name, {
       status: "Confirmed"
     });
   },
   complete(name: string) {
-    return updateRecord<Appointment>("Appointment", name, {
+    return updateRecord<Appointment>("Patient Appointment", name, {
       status: "Completed"
     });
   },

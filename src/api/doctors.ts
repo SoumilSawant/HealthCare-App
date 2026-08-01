@@ -3,7 +3,8 @@ import {
   deleteRecord,
   getRecord,
   listRecords,
-  updateRecord
+  updateRecord,
+  request
 } from "./client";
 import type {
   Doctor,
@@ -20,6 +21,18 @@ export const doctorsApi = {
   },
   update(name: string, values: Partial<Doctor>) {
     return updateRecord<Doctor>("Doctor", name, values);
+  },
+  saveSchedule(schedule_json: string, availability: string = "") {
+    return request<any>("/api/method/soulplace.api.save_doctor_schedule", {
+      method: "POST",
+      body: { schedule_json, availability }
+    });
+  },
+  getSlots(doctor: string, date: string) {
+    return request<string[]>("/api/method/soulplace.api.get_doctor_slots", {
+      method: "POST",
+      body: { doctor, date }
+    }).then(res => Array.isArray(res) ? res : ((res as any).message || []));
   },
   listScheduleExceptions(
     options?: ListOptions<DoctorScheduleException>

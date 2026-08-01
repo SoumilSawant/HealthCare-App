@@ -367,11 +367,11 @@ export function DoctorDetailPage() {
         </section>
         <section className="panel">
           <h2>Available slots</h2>
-          <IntegrationNotice title="Availability endpoint required">
-            The backend stores only free-form Doctor.availability and has no working-slots DocType or slot RPC. Exact bookable slots cannot be safely inferred.
-          </IntegrationNotice>
-          <Link className="text-link" to={`/patient/book?doctor=${encodeURIComponent(item.name)}`}>
-            Continue to booking <ArrowRight />
+          <p className="text-secondary" style={{ marginBottom: "1rem" }}>
+            The doctor's actual availability will be calculated during the booking process based on their schedule and existing appointments.
+          </p>
+          <Link className="button button-secondary" to={`/patient/book?doctor=${encodeURIComponent(item.name)}`}>
+            Check times and book <ArrowRight />
           </Link>
         </section>
       </div>
@@ -387,6 +387,40 @@ interface BookingForm {
   symptoms: string;
   privacyConsent: boolean;
   telemedicineConsent: boolean;
+}
+
+function AvailableSlots({ doctor, date, value, onChange }: { doctor: string; date: string; value: string; onChange: (v: string) => void }) {
+  const query = useQuery({
+    queryKey: ["doctor-slots", doctor, date],
+    queryFn: () => doctorsApi.getSlots(doctor, date)
+  });
+  
+  if (query.isLoading) return <div className="slots-container"><LoadingSkeleton rows={2} /></div>;
+  if (query.isError) return <div className="slots-container"><ErrorState error={query.error} /></div>;
+  
+  const slots = query.data || [];
+  
+  return (
+    <div className="slots-container">
+      <h3 style={{ margin: "1rem 0 0.5rem" }}>Available Times</h3>
+      {slots.length ? (
+        <div className="time-grid">
+          {slots.map(time => (
+            <button
+              key={time}
+              type="button"
+              className={`time-pill ${value === time ? "selected" : ""}`}
+              onClick={() => onChange(time)}
+            >
+              {time.substring(0, 5)}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <EmptyState title="No slots available" description="This doctor has no available time slots on this date." />
+      )}
+    </div>
+  );
 }
 
 export function BookingPage() {
@@ -476,10 +510,7 @@ export function BookingPage() {
           {step === 2 && (
             <>
               <Calendar value={form.date} onChange={(value) => set("date", value)} min={minDate} />
-              <IntegrationNotice title="Live slot service unavailable">
-                The backend has no slot-loading RPC and its overlap hook references nonexistent Appointment fields. A time can be requested, but the server cannot currently guarantee availability.
-              </IntegrationNotice>
-              <FormField label="Requested time" type="time" value={form.time} onChange={(event) => set("time", event.target.value)} required />
+              {form.date && <AvailableSlots doctor={form.doctor} date={form.date} value={form.time} onChange={(val) => set("time", val)} />}
             </>
           )}
           {step === 3 && (

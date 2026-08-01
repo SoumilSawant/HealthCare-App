@@ -20,7 +20,7 @@ export const consentsApi = {
       consent_type: consentType,
       consent_version: import.meta.env.VITE_CONSENT_VERSION || "1.0",
       status: "Granted",
-      granted_on: new Date().toISOString(),
+      granted_on: new Date().toISOString().slice(0, 19).replace('T', ' '),
       capture_source: "Web"
     });
   },
@@ -30,7 +30,7 @@ export const consentsApi = {
       name,
       {
         status: "Revoked",
-        revoked_on: new Date().toISOString()
+        revoked_on: new Date().toISOString().slice(0, 19).replace('T', ' ')
       }
     );
   }

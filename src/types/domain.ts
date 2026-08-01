@@ -37,6 +37,7 @@ export interface Doctor extends FrappeDocument {
   email: string;
   consultation_fee: number;
   availability?: string;
+  schedule_json?: string;
   status: DoctorStatus;
   teleconsult_enabled: 0 | 1;
   avg_consult_duration_mins?: number;
