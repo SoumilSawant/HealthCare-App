@@ -1,3 +1,4 @@
+import { lazy, Suspense, type ComponentType } from "react";
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 import { ArrowRight, HeartHandshake, ShieldCheck, Stethoscope } from "lucide-react";
 import {
@@ -10,60 +11,60 @@ import {
 import { useAuth } from "./auth/AuthProvider";
 import { AdminShell, DoctorShell, PatientShell } from "./components/Shells";
 import { Brand, LoadingPage } from "./components/ui";
-import {
-  DoctorPendingPage,
-  DoctorRegisterPage,
-  ForgotPasswordPage,
-  OtpLoginPage,
-  PatientRegisterPage,
-  PortalLogin
-} from "./pages/auth";
-import {
-  BookingConfirmedPage,
-  BookingPage,
-  DoctorDetailPage,
-  DoctorDiscoveryPage,
-  HelpPage,
-  MoodCheckPage,
-  MoodResultsPage,
-  PatientAppointmentDetailPage,
-  PatientAppointmentsPage,
-  PatientConsultationPage,
-  PatientDashboardPage,
-  PatientPrescriptionsPage,
-  PatientProfilePage,
-  PatientSettingsPage,
-  PaymentMethodsPage,
-  ResourceDetailPage,
-  ResourcesPage,
-  SafetyPage
-} from "./pages/patient";
-import {
-  ConsultationWorkspacePage,
-  DoctorAppointmentDetailPage,
-  DoctorAppointmentsPage,
-  DoctorAvailabilityPage,
-  DoctorConsultationsPage,
-  DoctorDashboardPage,
-  DoctorPrescriptionsPage,
-  DoctorProfilePage,
-  DoctorRequestsPage,
-  DoctorSettingsPage,
-  ScheduleExceptionsPage
-} from "./pages/doctor";
-import {
-  AdminAppointmentsPage,
-  AdminAuditPage,
-  AdminConsentsPage,
-  AdminConsultationsPage,
-  AdminDashboardPage,
-  AdminDoctorDetailPage,
-  AdminDoctorsPage,
-  AdminPatientsPage,
-  AdminPrescriptionsPage,
-  AdminScheduleExceptionsPage,
-  AdminTeleconsultsPage
-} from "./pages/admin";
+
+const lazyPage = <T extends Record<string, unknown>>(loader: () => Promise<T>, name: keyof T) =>
+  lazy(async () => ({ default: (await loader())[name] as ComponentType<any> }));
+const authPage = <K extends keyof typeof import("./pages/auth")>(name: K) => lazyPage(() => import("./pages/auth"), name);
+const patientPage = <K extends keyof typeof import("./pages/patient")>(name: K) => lazyPage(() => import("./pages/patient"), name);
+const doctorPage = <K extends keyof typeof import("./pages/doctor")>(name: K) => lazyPage(() => import("./pages/doctor"), name);
+const adminPage = <K extends keyof typeof import("./pages/admin")>(name: K) => lazyPage(() => import("./pages/admin"), name);
+
+const DoctorPendingPage = authPage("DoctorPendingPage");
+const DoctorRegisterPage = authPage("DoctorRegisterPage");
+const ForgotPasswordPage = authPage("ForgotPasswordPage");
+const OtpLoginPage = authPage("OtpLoginPage");
+const PatientRegisterPage = authPage("PatientRegisterPage");
+const PortalLogin = authPage("PortalLogin");
+const BookingConfirmedPage = patientPage("BookingConfirmedPage");
+const BookingPage = patientPage("BookingPage");
+const DoctorDetailPage = patientPage("DoctorDetailPage");
+const DoctorDiscoveryPage = patientPage("DoctorDiscoveryPage");
+const HelpPage = patientPage("HelpPage");
+const MoodCheckPage = patientPage("MoodCheckPage");
+const MoodResultsPage = patientPage("MoodResultsPage");
+const PatientAppointmentDetailPage = patientPage("PatientAppointmentDetailPage");
+const PatientAppointmentsPage = patientPage("PatientAppointmentsPage");
+const PatientConsultationPage = patientPage("PatientConsultationPage");
+const PatientDashboardPage = patientPage("PatientDashboardPage");
+const PatientPrescriptionsPage = patientPage("PatientPrescriptionsPage");
+const PatientProfilePage = patientPage("PatientProfilePage");
+const PatientSettingsPage = patientPage("PatientSettingsPage");
+const PaymentMethodsPage = patientPage("PaymentMethodsPage");
+const ResourceDetailPage = patientPage("ResourceDetailPage");
+const ResourcesPage = patientPage("ResourcesPage");
+const SafetyPage = patientPage("SafetyPage");
+const ConsultationWorkspacePage = doctorPage("ConsultationWorkspacePage");
+const DoctorAppointmentDetailPage = doctorPage("DoctorAppointmentDetailPage");
+const DoctorAppointmentsPage = doctorPage("DoctorAppointmentsPage");
+const DoctorAvailabilityPage = doctorPage("DoctorAvailabilityPage");
+const DoctorConsultationsPage = doctorPage("DoctorConsultationsPage");
+const DoctorDashboardPage = doctorPage("DoctorDashboardPage");
+const DoctorPrescriptionsPage = doctorPage("DoctorPrescriptionsPage");
+const DoctorProfilePage = doctorPage("DoctorProfilePage");
+const DoctorRequestsPage = doctorPage("DoctorRequestsPage");
+const DoctorSettingsPage = doctorPage("DoctorSettingsPage");
+const ScheduleExceptionsPage = doctorPage("ScheduleExceptionsPage");
+const AdminAppointmentsPage = adminPage("AdminAppointmentsPage");
+const AdminAuditPage = adminPage("AdminAuditPage");
+const AdminConsentsPage = adminPage("AdminConsentsPage");
+const AdminConsultationsPage = adminPage("AdminConsultationsPage");
+const AdminDashboardPage = adminPage("AdminDashboardPage");
+const AdminDoctorDetailPage = adminPage("AdminDoctorDetailPage");
+const AdminDoctorsPage = adminPage("AdminDoctorsPage");
+const AdminPatientsPage = adminPage("AdminPatientsPage");
+const AdminPrescriptionsPage = adminPage("AdminPrescriptionsPage");
+const AdminScheduleExceptionsPage = adminPage("AdminScheduleExceptionsPage");
+const AdminTeleconsultsPage = adminPage("AdminTeleconsultsPage");
 
 function LandingPage() {
   const auth = useAuth();
@@ -75,7 +76,7 @@ function LandingPage() {
     return <Navigate to={`/${auth.portal}/dashboard`} replace />;
   }
   return (
-    <main className="landing-page">
+    <main id="main-content" className="landing-page">
       <header><Brand /></header>
       <section>
         <p className="eyebrow">One place. Three focused care experiences.</p>
@@ -108,7 +109,7 @@ function LandingPage() {
 
 function NotFoundPage() {
   return (
-    <main className="state-page">
+    <main id="main-content" className="state-page">
       <span className="brand-mark">S</span>
       <h1>That page isn’t here</h1>
       <p>The link may be outdated or you may not have access to it.</p>
@@ -119,6 +120,8 @@ function NotFoundPage() {
 
 export default function App() {
   return (
+    <>
+    <Suspense fallback={<LoadingPage label="Loading page" />}>
     <Routes>
       <Route path="/" element={<LandingPage />} />
 
@@ -145,7 +148,7 @@ export default function App() {
           <Route path="prescriptions" element={<PatientPrescriptionsPage />} />
           <Route path="profile" element={<PatientProfilePage />} />
           <Route path="settings" element={<PatientSettingsPage />} />
-          <Route path="payment-methods" element={<PaymentMethodsPage />} />
+          {import.meta.env.VITE_PAYMENTS_ENABLED === "true" && <Route path="payment-methods" element={<PaymentMethodsPage />} />}
           <Route path="help" element={<HelpPage />} />
         </Route>
       </Route>
@@ -195,5 +198,7 @@ export default function App() {
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
+    </Suspense>
+    </>
   );
 }

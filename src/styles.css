@@ -33,8 +33,15 @@
   --shadow-md: 0 16px 38px rgba(35, 52, 45, 0.1);
   --shadow-lg: 0 30px 74px rgba(29, 45, 39, 0.16);
   --radius-sm: 10px;
+  --radius-md: 12px;
   --radius: 16px;
   --radius-lg: 24px;
+  --radius-full: 999px;
+  --surface-0: var(--white);
+  --surface-1: var(--paper);
+  --surface-2: var(--sage-50);
+  --text: var(--charcoal);
+  --text-secondary: var(--muted);
   --sidebar: 264px;
 }
 
@@ -59,6 +66,12 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #65716d;
+  opacity: 1;
 }
 
 input:-webkit-autofill,
@@ -282,8 +295,8 @@ svg {
 
 .icon-button {
   display: inline-grid;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   place-items: center;
   border: 0;
@@ -700,6 +713,7 @@ svg {
 }
 
 .topbar-actions {
+  position: relative;
   justify-content: flex-end;
   gap: 0.7rem;
 }
@@ -708,19 +722,24 @@ svg {
   position: relative;
 }
 
-.notification-button > span {
+.notification-popover {
   position: absolute;
-  top: 4px;
-  right: 3px;
-  display: grid;
-  width: 17px;
-  height: 17px;
-  place-items: center;
-  border: 2px solid var(--cream);
-  border-radius: 50%;
-  background: var(--rose-500);
-  color: white;
-  font-size: 0.58rem;
+  top: calc(100% + 0.75rem);
+  right: 3.25rem;
+  z-index: 60;
+  display: flex;
+  width: min(290px, calc(100vw - 2rem));
+  padding: 0.9rem 1rem;
+  flex-direction: column;
+  gap: 0.2rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: var(--shadow-md);
+}
+
+.notification-popover small {
+  color: var(--muted);
 }
 
 .profile-menu {
@@ -1080,16 +1099,16 @@ svg {
 }
 
 .field .password-field input {
-  padding-right: 3rem;
+  padding-right: 3.25rem;
 }
 
 .field .password-toggle {
   position: absolute;
   top: 50%;
-  right: 0.45rem;
+  right: 0.1rem;
   display: grid;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.75rem;
+  height: 2.75rem;
   min-height: 0;
   padding: 0;
   border: 0;
@@ -1452,7 +1471,7 @@ th {
 }
 
 .table-sort span {
-  color: #8c948f;
+  color: var(--muted);
   font-size: 0.75rem;
 }
 
@@ -1470,6 +1489,12 @@ tbody tr:last-child td {
 }
 
 .clickable-row:hover {
+  background: var(--sage-50);
+}
+
+.clickable-row:focus-visible {
+  outline: 3px solid #d3a84f;
+  outline-offset: -3px;
   background: var(--sage-50);
 }
 
@@ -2328,6 +2353,127 @@ tbody tr:last-child td {
   gap: 1.2rem;
 }
 
+.meet-card {
+  display: grid;
+  margin: 0 0 1.2rem;
+  padding: clamp(1.15rem, 2vw, 1.65rem);
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1.1rem;
+  border-radius: var(--radius);
+  background: var(--sage-900);
+  color: white;
+  box-shadow: 0 16px 38px rgba(35, 52, 45, 0.14);
+}
+
+.meet-card-mark {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border-radius: 15px 15px 15px 5px;
+  background: #d9eee6;
+  color: var(--sage-900);
+}
+
+.meet-card-mark svg {
+  width: 25px;
+  height: 25px;
+}
+
+.meet-card-content {
+  min-width: 0;
+}
+
+.meet-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.meet-card-heading small {
+  display: block;
+  margin-bottom: 0.22rem;
+  color: #bcd5cb;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.meet-card h2 {
+  margin-bottom: 0.4rem;
+  color: white;
+  font-family: "Newsreader Variable", Georgia, serif;
+  font-size: clamp(1.35rem, 2vw, 1.75rem);
+  font-weight: 590;
+}
+
+.meet-card p {
+  max-width: 70ch;
+  margin-bottom: 0.85rem;
+  color: #d9e7e2;
+  font-size: 0.82rem;
+}
+
+.meet-card .status-badge {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.meet-privacy-note {
+  display: flex;
+  max-width: 760px;
+  align-items: flex-start;
+  gap: 0.45rem;
+  color: #bcd5cb;
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.meet-privacy-note svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.meet-actions {
+  display: flex;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.meet-card .button-primary {
+  background: white;
+  color: var(--sage-900);
+  box-shadow: 0 7px 18px rgba(9, 29, 23, 0.2);
+}
+
+.meet-card .button-primary:hover:not(:disabled) {
+  background: var(--sage-50);
+  color: var(--sage-900);
+}
+
+.meet-card .button-primary svg:last-child {
+  width: 15px;
+  height: 15px;
+}
+
+.meet-card .meet-error {
+  margin: 0.8rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: #ffe8e2;
+  color: #733034;
+}
+
+.meet-setup-note {
+  display: block;
+  margin-top: 0.7rem;
+  color: #c9ddd6;
+  line-height: 1.5;
+}
+
 .detail-list {
   display: grid;
   margin: 0;
@@ -2589,6 +2735,7 @@ tbody tr:last-child td {
 }
 
 .tab-list button {
+  min-height: 44px;
   padding: 0.55rem 1rem;
   border: 0;
   border-radius: 8px;
@@ -3263,6 +3410,7 @@ tbody tr:last-child td {
 
 .day-pill {
   position: relative;
+  min-height: 44px;
   background: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
@@ -3320,6 +3468,7 @@ tbody tr:last-child td {
 }
 
 .time-pill {
+  min-height: 44px;
   background: var(--surface-0);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -3838,6 +3987,16 @@ tbody tr:last-child td {
   .detail-list > div {
     grid-template-columns: 1fr;
     gap: 0.3rem;
+  }
+  .meet-card {
+    grid-template-columns: 1fr;
+  }
+  .meet-card-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .meet-actions .button {
+    width: 100%;
   }
   .pagination {
     justify-content: center;

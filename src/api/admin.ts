@@ -1,4 +1,5 @@
-import { listRecords, updateRecord } from "./client";
+import { callRpc, listRecords } from "./client";
+import { DEMO_MODE } from "./demo";
 import type {
   Appointment,
   AppointmentAuditTimeline,
@@ -12,6 +13,19 @@ import type {
 
 export const adminApi = {
   async dashboardStats() {
+    if (!DEMO_MODE) {
+      return callRpc<{
+        totalPatients: number;
+        totalDoctors: number;
+        pendingDoctors: number;
+        todayAppointments: number;
+        activeConsultations: number;
+        cancelledAppointments: number;
+        appointmentStatuses: Record<string, number>;
+        appointmentTrend: Array<{ date: string; count: number }>;
+        doctorApprovals: Record<string, number>;
+      }>("soulplace.api.dashboard_stats");
+    }
     const [patients, doctors, appointments, consultations] = await Promise.all([
       listRecords<PatientUser>("PatientUser", {
         fields: ["name"],
@@ -44,8 +58,20 @@ export const adminApi = {
       cancelledAppointments: appointments.data.filter(
         (appointment) => appointment.status === "Cancelled"
       ).length,
-      appointments: appointments.data,
-      doctors: doctors.data
+      appointmentStatuses: appointments.data.reduce<Record<string, number>>((result, appointment) => {
+        result[appointment.status] = (result[appointment.status] || 0) + 1;
+        return result;
+      }, {}),
+      appointmentTrend: Object.entries(
+        appointments.data.reduce<Record<string, number>>((result, appointment) => {
+          result[appointment.appointment_date] = (result[appointment.appointment_date] || 0) + 1;
+          return result;
+        }, {})
+      ).map(([date, count]) => ({ date, count })),
+      doctorApprovals: doctors.data.reduce<Record<string, number>>((result, doctor) => {
+        result[doctor.approval_status] = (result[doctor.approval_status] || 0) + 1;
+        return result;
+      }, {})
     };
   },
   pendingDoctors() {
@@ -57,64 +83,59 @@ export const adminApi = {
     });
   },
   approveDoctor(name: string) {
-    return updateRecord<Doctor>("Doctor", name, {
-      approval_status: "Approved",
-      status: "Active"
-    });
+    if (DEMO_MODE) return Promise.resolve({ name, approval_status: "Approved", status: "Active" } as Doctor);
+    return callRpc<Doctor>("soulplace.api.review_doctor", { name, decision: "Approved" });
   },
-  rejectDoctor(name: string) {
-    // The backend has no rejection-reason field; only the real status is updated.
-    return updateRecord<Doctor>("Doctor", name, {
-      approval_status: "Rejected",
-      status: "Inactive"
-    });
+  rejectDoctor(name: string, reason: string) {
+    if (DEMO_MODE) return Promise.resolve({ name, approval_status: "Rejected", status: "Inactive", rejection_reason: reason } as Doctor);
+    return callRpc<Doctor>("soulplace.api.review_doctor", { name, decision: "Rejected", reason });
   },
   patients() {
     return listRecords<PatientUser>("PatientUser", {
       fields: ["*"],
-      limitPageLength: 500
+      limitPageLength: 100
     });
   },
   doctors() {
     return listRecords<Doctor>("Doctor", {
       fields: ["*"],
-      limitPageLength: 500
+      limitPageLength: 100
     });
   },
   appointments() {
     return listRecords<Appointment>("Appointment", {
       fields: ["*"],
-      limitPageLength: 500
+      limitPageLength: 100
     });
   },
   consultations() {
     return listRecords<Consultation>("Consultation", {
       fields: ["*"],
-      limitPageLength: 500
+      limitPageLength: 100
     });
   },
   prescriptions() {
     return listRecords<Prescription>("Prescription", {
       fields: ["*"],
-      limitPageLength: 500
+      limitPageLength: 100
     });
   },
   consents() {
     return listRecords<PatientConsentRecord>("Patient Consent Record", {
       fields: ["*"],
-      limitPageLength: 500
+      limitPageLength: 100
     });
   },
   timelines() {
     return listRecords<AppointmentAuditTimeline>(
       "Appointment Audit Timeline",
-      { fields: ["*"], orderBy: "event_time desc", limitPageLength: 500 }
+      { fields: ["*"], orderBy: "event_time desc", limitPageLength: 100 }
     );
   },
   sessions() {
     return listRecords<TeleconsultSession>("Teleconsult Session", {
       fields: ["*"],
-      limitPageLength: 500
+      limitPageLength: 100
     });
   }
 };

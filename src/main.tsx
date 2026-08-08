@@ -7,7 +7,11 @@ import "@fontsource-variable/newsreader";
 import App from "./App";
 import { AuthProvider } from "./auth/AuthProvider";
 import { ToastProvider } from "./components/ui";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { initializeMonitoring } from "./monitoring";
 import "./styles.css";
+
+initializeMonitoring();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,9 +32,11 @@ createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <ToastProvider>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
+          <ErrorBoundary>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </ErrorBoundary>
         </ToastProvider>
       </BrowserRouter>
     </QueryClientProvider>

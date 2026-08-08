@@ -1,11 +1,13 @@
 import {
   createRecord,
+  callRpc,
   deleteRecord,
   getRecord,
   listRecords,
   updateRecord,
   request
 } from "./client";
+import { DEMO_MODE } from "./demo";
 import type {
   Doctor,
   DoctorScheduleException,
@@ -20,19 +22,32 @@ export const doctorsApi = {
     return getRecord<Doctor>("Doctor", name);
   },
   update(name: string, values: Partial<Doctor>) {
-    return updateRecord<Doctor>("Doctor", name, values);
+    if (DEMO_MODE) return updateRecord<Doctor>("Doctor", name, values);
+    return callRpc<Doctor>("soulplace.api.update_doctor_profile", { values });
   },
-  saveSchedule(schedule_json: string, availability: string = "") {
-    return request<any>("/api/method/soulplace.api.save_doctor_schedule", {
-      method: "POST",
-      body: { schedule_json, availability }
-    });
+  saveSchedule(values: {
+    schedule_json: string;
+    availability?: string;
+    status?: Doctor["status"];
+    teleconsult_enabled?: 0 | 1;
+    avg_consult_duration_mins?: number;
+  }) {
+    if (DEMO_MODE) {
+      return updateRecord<Doctor>("Doctor", "DOC-DEMO-001", values);
+    }
+    return callRpc<Doctor>("soulplace.api.save_doctor_schedule", values);
   },
   getSlots(doctor: string, date: string) {
     return request<string[]>("/api/method/soulplace.api.get_doctor_slots", {
       method: "POST",
       body: { doctor, date }
-    }).then(res => Array.isArray(res) ? res : ((res as any).message || []));
+    }).then((response): string[] => {
+      if (Array.isArray(response)) return response;
+      const wrapped = response as unknown as { message?: unknown };
+      return Array.isArray(wrapped.message)
+        ? wrapped.message.filter((value): value is string => typeof value === "string")
+        : [];
+    });
   },
   listScheduleExceptions(
     options?: ListOptions<DoctorScheduleException>
@@ -45,6 +60,12 @@ export const doctorsApi = {
   createScheduleException(
     values: Omit<Partial<DoctorScheduleException>, "name">
   ) {
+    if (!DEMO_MODE) {
+      return callRpc<DoctorScheduleException>(
+        "soulplace.api.create_schedule_exception",
+        { values }
+      );
+    }
     return createRecord<DoctorScheduleException>(
       "Doctor Schedule Exception",
       values
@@ -54,6 +75,12 @@ export const doctorsApi = {
     name: string,
     values: Partial<DoctorScheduleException>
   ) {
+    if (!DEMO_MODE) {
+      return callRpc<DoctorScheduleException>(
+        "soulplace.api.update_schedule_exception",
+        { name, values }
+      );
+    }
     return updateRecord<DoctorScheduleException>(
       "Doctor Schedule Exception",
       name,
@@ -61,6 +88,9 @@ export const doctorsApi = {
     );
   },
   deleteScheduleException(name: string) {
+    if (!DEMO_MODE) {
+      return callRpc<void>("soulplace.api.delete_schedule_exception", { name });
+    }
     return deleteRecord("Doctor Schedule Exception", name);
   }
 };

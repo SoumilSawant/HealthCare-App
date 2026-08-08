@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Link,
@@ -18,20 +18,17 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
-  CreditCard,
-  ExternalLink,
   HeartHandshake,
-  Languages,
   LifeBuoy,
   MessageCircleHeart,
   PhoneCall,
+  Pill,
   PlayCircle,
   Save,
   Search,
   ShieldCheck,
   Sparkles,
   Stethoscope,
-  UserRound,
   Video,
   WalletCards
 } from "lucide-react";
@@ -43,6 +40,7 @@ import { doctorsApi } from "../api/doctors";
 import { patientsApi } from "../api/patients";
 import { prescriptionsApi } from "../api/prescriptions";
 import { teleconsultApi } from "../api/teleconsult";
+import { GoogleMeetCard } from "../components/GoogleMeetCard";
 import {
   AppointmentCard,
   AppointmentTimeline,
@@ -60,18 +58,13 @@ import {
   PageHeader,
   SearchFilterBar,
   SelectField,
-  StatCard,
   StatusBadge,
   TextAreaField,
-  TimeSlotPicker,
   useToast
 } from "../components/ui";
 import { UtilityLinks } from "../components/Shells";
 import type {
   Appointment,
-  Consultation,
-  Doctor,
-  PatientConsentRecord
 } from "../types/domain";
 
 function usePatientAppointments() {
@@ -451,21 +444,18 @@ export function BookingPage() {
   const create = useMutation({
     mutationFn: async () => {
       if (!auth.patient?.name) throw new Error("No patient profile is linked.");
-      const appointment = await appointmentsApi.create({
-        patient: auth.patient.name,
+      return appointmentsApi.book({
         doctor: form.doctor,
         appointment_date: form.date,
         appointment_time: form.time,
-        status: "Pending",
         symptoms: form.symptoms,
         booking_source: "Web",
         is_teleconsult: form.type === "teleconsult" ? 1 : 0
+      }, {
+        privacy: form.privacyConsent,
+        telemedicine: form.telemedicineConsent,
+        version: import.meta.env.VITE_CONSENT_VERSION || "1.0"
       });
-      await consentsApi.grant(auth.patient.name, "Privacy");
-      if (form.type === "teleconsult") {
-        await consentsApi.grant(auth.patient.name, "Telemedicine");
-      }
-      return appointment;
     },
     onSuccess: (appointment) => {
       void queryClient.invalidateQueries({ queryKey: ["appointments", "patient"] });
@@ -625,9 +615,10 @@ export function PatientAppointmentsPage() {
         actions={<Link className="button button-primary" to="/patient/doctors">Book a consultation</Link>}
       />
       <div className="tab-list" role="tablist">
-        <button className={tab === "upcoming" ? "active" : ""} onClick={() => setTab("upcoming")} role="tab">Upcoming</button>
-        <button className={tab === "past" ? "active" : ""} onClick={() => setTab("past")} role="tab">Past</button>
+        <button id="upcoming-tab" className={tab === "upcoming" ? "active" : ""} onClick={() => setTab("upcoming")} onKeyDown={(event) => { if (event.key === "ArrowRight") setTab("past"); }} role="tab" aria-selected={tab === "upcoming"} aria-controls="appointments-panel" tabIndex={tab === "upcoming" ? 0 : -1}>Upcoming</button>
+        <button id="past-tab" className={tab === "past" ? "active" : ""} onClick={() => setTab("past")} onKeyDown={(event) => { if (event.key === "ArrowLeft") setTab("upcoming"); }} role="tab" aria-selected={tab === "past"} aria-controls="appointments-panel" tabIndex={tab === "past" ? 0 : -1}>Past</button>
       </div>
+      <div id="appointments-panel" role="tabpanel" aria-labelledby={`${tab}-tab`}>
       {query.isLoading ? <LoadingSkeleton rows={5} /> :
         query.isError ? <ErrorState error={query.error} onRetry={() => void query.refetch()} /> :
         rows.length ? (
@@ -643,6 +634,7 @@ export function PatientAppointmentsPage() {
         ) : (
           <EmptyState title={tab === "upcoming" ? "No upcoming appointments" : "No past appointments"} description={tab === "upcoming" ? "Find a doctor when you’re ready to take the next step." : "Completed and cancelled appointments will appear here."} action={tab === "upcoming" ? <Link className="button button-primary" to="/patient/doctors">Find a doctor</Link> : undefined} icon={<CalendarDays />} />
         )}
+      </div>
     </>
   );
 }
@@ -653,7 +645,10 @@ export function PatientAppointmentDetailPage() {
   const toast = useToast();
   const queryClient = useQueryClient();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [reason, setReason] = useState("");
+  const [newDate, setNewDate] = useState("");
+  const [newTime, setNewTime] = useState("");
   const appointment = useQuery({
     queryKey: ["appointment", appointmentId],
     queryFn: () => appointmentsApi.get(appointmentId || ""),
@@ -678,6 +673,16 @@ export function PatientAppointmentDetailPage() {
       void queryClient.invalidateQueries({ queryKey: ["appointments", "patient"] });
     }
   });
+  const reschedule = useMutation({
+    mutationFn: () => appointmentsApi.reschedule(appointmentId || "", newDate, newTime, reason),
+    onSuccess: () => {
+      toast.notify("Appointment rescheduled.");
+      setRescheduleOpen(false);
+      void queryClient.invalidateQueries({ queryKey: ["appointment", appointmentId] });
+      void queryClient.invalidateQueries({ queryKey: ["appointment-timeline", appointmentId] });
+      void queryClient.invalidateQueries({ queryKey: ["appointments", "patient"] });
+    }
+  });
   if (appointment.isLoading) return <LoadingSkeleton rows={6} />;
   if (appointment.isError) return <ErrorState error={appointment.error} onRetry={() => void appointment.refetch()} />;
   if (!appointment.data || appointment.data.patient !== auth.patient?.name) {
@@ -689,6 +694,15 @@ export function PatientAppointmentDetailPage() {
     <>
       <Breadcrumbs items={[{ label: "Appointments", to: "/patient/appointments" }, { label: item.name }]} />
       <PageHeader title="Appointment details" description={`Reference ${item.name}`} actions={<StatusBadge status={item.status} />} />
+      {item.is_teleconsult ? (
+        <GoogleMeetCard
+          audience="patient"
+          appointmentStatus={item.status}
+          session={session}
+          loading={teleconsult.isLoading}
+          error={teleconsult.error}
+        />
+      ) : null}
       <div className="detail-grid">
         <section className="panel detail-card">
           <dl className="detail-list">
@@ -700,13 +714,10 @@ export function PatientAppointmentDetailPage() {
             {item.cancel_reason && <div><dt>Cancellation reason</dt><dd>{item.cancel_reason}</dd></div>}
           </dl>
           <div className="card-actions">
-            {session?.meeting_link && ["Created", "Live"].includes(session.session_status) && (
-              <a className="button button-primary" href={session.meeting_link} target="_blank" rel="noreferrer"><Video /> Join teleconsult</a>
-            )}
             {["Pending", "Confirmed"].includes(item.status) && (
               <>
                 <Button variant="secondary" onClick={() => setConfirmOpen(true)}>Cancel appointment</Button>
-                <Link className="button button-ghost" to={`/patient/book?doctor=${encodeURIComponent(item.doctor)}`}>Request reschedule</Link>
+                <Button variant="ghost" onClick={() => { setNewDate(item.appointment_date); setNewTime(item.appointment_time.slice(0, 5)); setReason(""); setRescheduleOpen(true); }}>Reschedule</Button>
               </>
             )}
           </div>
@@ -733,6 +744,23 @@ export function PatientAppointmentDetailPage() {
         <div className="dialog-inline-field">
           <TextAreaField label="Cancellation reason" value={reason} onChange={(event) => setReason(event.target.value)} />
         </div>
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={rescheduleOpen}
+        title="Reschedule appointment"
+        description="Choose a new available date and time. The change is recorded in the appointment audit timeline."
+        confirmLabel="Save new time"
+        busy={reschedule.isPending}
+        confirmDisabled={!newDate || !newTime}
+        onCancel={() => setRescheduleOpen(false)}
+        onConfirm={() => reschedule.mutate()}
+      >
+        <div className="form-grid two-column dialog-inline-field">
+          <FormField label="New date" type="date" min={new Date().toISOString().slice(0, 10)} value={newDate} onChange={(event) => setNewDate(event.target.value)} required />
+          <FormField label="New time" type="time" value={newTime} onChange={(event) => setNewTime(event.target.value)} required />
+        </div>
+        <TextAreaField label="Reason (optional)" value={reason} onChange={(event) => setReason(event.target.value)} />
+        {reschedule.isError && <ErrorState error={reschedule.error} />}
       </ConfirmDialog>
     </>
   );
@@ -764,7 +792,6 @@ export function PatientConsultationPage() {
           <p>{consultation.data.patient_friendly_summary || "Your doctor has not added a patient-friendly summary yet."}</p>
           <dl className="detail-list">
             <div><dt>Follow-up date</dt><dd>{consultation.data.follow_up_date || "Not scheduled"}</dd></div>
-            <div><dt>Care plan</dt><dd>{consultation.data.soap_plan || "Not shared"}</dd></div>
           </dl>
         </section>
         <section className="panel">
@@ -785,7 +812,7 @@ export function PatientConsultationPage() {
 }
 
 function PillIcon() {
-  return <span className="shortcut-icon gold"><CreditCard /></span>;
+  return <span className="shortcut-icon gold"><Pill /></span>;
 }
 
 export function PatientPrescriptionsPage() {
@@ -796,9 +823,6 @@ export function PatientPrescriptionsPage() {
   return (
     <>
       <PageHeader eyebrow="Medication" title="Prescriptions" description="Medicines recorded by your care team." />
-      <IntegrationNotice>
-        The current backend grants Prescription access only to System Manager. Patient access requires corrected read permissions and record-level scoping.
-      </IntegrationNotice>
       {prescriptions.isLoading ? <LoadingSkeleton rows={5} /> :
         prescriptions.isError ? <ErrorState error={prescriptions.error} onRetry={() => void prescriptions.refetch()} /> :
         prescriptions.data!.data.length ? <div className="prescription-list">{prescriptions.data!.data.map((item) => <article key={item.name}><PillIcon /><div><strong>{item.medicine_name}</strong><p>{item.dosage}</p><small>{item.instructions || "No additional instructions"}</small></div></article>)}</div> :

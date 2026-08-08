@@ -1,5 +1,5 @@
-import { callRpc, clearSessionTokens, getRecord, listRecords, request } from "./client";
-import type { AuthSession, Doctor, PatientUser } from "../types/domain";
+import { callRpc, clearSessionTokens, request } from "./client";
+import type { AuthSession } from "../types/domain";
 import {
   DEMO_MODE,
   demoLogin,
@@ -26,10 +26,11 @@ interface PatientLoginResponse {
   };
 }
 
-interface UserDocument {
-  name: string;
-  full_name?: string;
-  roles?: Array<{ role: string }>;
+export function normalizeIndianPhone(value: string) {
+  const digits = value.replace(/\D/g, "");
+  return digits.length === 12 && digits.startsWith("91")
+    ? digits.slice(2)
+    : digits;
 }
 
 export const authApi = {
@@ -51,7 +52,7 @@ export const authApi = {
           : undefined
       } satisfies PatientLoginResponse);
     }
-    const normalizedPhone = phoneOrEmail.replace(/\D/g, "");
+    const normalizedPhone = normalizeIndianPhone(phoneOrEmail);
     const usr = phoneOrEmail.includes("@")
       ? phoneOrEmail
       : `${normalizedPhone}@soulplace.local`;
@@ -139,6 +140,64 @@ export const authApi = {
     );
   },
 
+  registerDoctor(input: {
+    full_name: string;
+    email: string;
+    mobile_number: string;
+    password: string;
+    specialty: string;
+    medical_registration: string;
+    consultation_fee: number;
+    avg_consult_duration_mins: number;
+    specialization_tags: string;
+    teleconsult_enabled: boolean;
+    professional_consent: boolean;
+    consent_version: string;
+    verification: File;
+  }) {
+    const body = new FormData();
+    Object.entries(input).forEach(([key, value]) => {
+      if (key === "verification") {
+        body.append(key, value as File);
+      } else {
+        body.append(key, typeof value === "boolean" ? (value ? "1" : "0") : String(value));
+      }
+    });
+    return request<{ success: boolean; status: "Pending" }>(
+      "/api/method/soulplace.api.register_doctor",
+      { method: "POST", body, skipCsrf: true }
+    );
+  },
+
+  requestPatientOtp(phoneno: string, purpose: "login" | "reset" = "login") {
+    return callRpc<{ sent: boolean; expires_in: number }>(
+      "soulplace.auth.request_patient_otp",
+      { phoneno: normalizeIndianPhone(phoneno), purpose },
+      true
+    );
+  },
+
+  verifyPatientOtp(input: {
+    phoneno: string;
+    otp: string;
+    purpose?: "login" | "reset";
+    new_password?: string;
+  }) {
+    return callRpc<PatientLoginResponse & { password_reset?: boolean }>(
+      "soulplace.auth.verify_patient_otp",
+      { ...input, phoneno: normalizeIndianPhone(input.phoneno) },
+      true
+    );
+  },
+
+  requestEmailPasswordReset(email: string) {
+    return callRpc<void>(
+      "frappe.core.doctype.user.user.reset_password",
+      { user: email.trim().toLowerCase() },
+      true
+    );
+  },
+
   async restore(): Promise<AuthSession> {
     if (DEMO_MODE) return demoRestoreSession();
     try {
@@ -157,7 +216,7 @@ export const authApi = {
         patient: identity.patient,
         doctor: identity.doctor
       };
-    } catch (e) {
+    } catch {
       return { status: "anonymous", roles: [] };
     }
   }

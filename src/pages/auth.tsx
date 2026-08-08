@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -10,11 +10,10 @@ import {
   ShieldCheck,
   Sparkles,
   Stethoscope,
-  UserRoundCheck
 } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
 import { authApi } from "../api/auth";
-import { normalizeApiError, uploadFile } from "../api/client";
+import { normalizeApiError } from "../api/client";
 import { DEMO_ACCOUNTS, DEMO_MODE } from "../api/demo";
 import {
   Brand,
@@ -60,7 +59,7 @@ function AuthFrame({
     ]
   }[portal];
   return (
-    <main className={`auth-page auth-${portal}`}>
+    <main id="main-content" className={`auth-page auth-${portal}`}>
       <section className="auth-story">
         <Brand />
         <div className="auth-story-copy">
@@ -487,22 +486,51 @@ export function PatientRegisterPage() {
 }
 
 export function DoctorRegisterPage() {
+  const auth = useAuth();
+  const navigate = useNavigate();
+  const toast = useToast();
   const [verification, setVerification] = useState<File>();
-  const [uploading, setUploading] = useState(false);
-  const [uploadedUrl, setUploadedUrl] = useState("");
-  const [uploadError, setUploadError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    full_name: "",
+    email: "",
+    mobile_number: "",
+    password: "",
+    specialty: "",
+    medical_registration: "",
+    consultation_fee: "",
+    avg_consult_duration_mins: "30",
+    specialization_tags: "",
+    teleconsult_enabled: true,
+    professional_consent: false
+  });
+  const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
+    setForm((current) => ({ ...current, [key]: value }));
 
-  const upload = async (file: File) => {
-    setVerification(file);
-    setUploading(true);
-    setUploadError("");
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!verification) {
+      setError("Attach a PDF, PNG, or JPEG verification document.");
+      return;
+    }
+    setBusy(true);
+    setError("");
     try {
-      const result = await uploadFile(file, true);
-      setUploadedUrl(result.file_url);
-    } catch (error) {
-      setUploadError(normalizeApiError(error).message);
+      await authApi.registerDoctor({
+        ...form,
+        consultation_fee: Number(form.consultation_fee),
+        avg_consult_duration_mins: Number(form.avg_consult_duration_mins),
+        consent_version: import.meta.env.VITE_CONSENT_VERSION || "1.0",
+        verification
+      });
+      await auth.restore();
+      toast.notify("Application submitted for review.");
+      navigate("/doctor/pending", { replace: true });
+    } catch (unknownError) {
+      setError(normalizeApiError(unknownError).message);
     } finally {
-      setUploading(false);
+      setBusy(false);
     }
   };
 
@@ -513,58 +541,61 @@ export function DoctorRegisterPage() {
       title="Join the SoulPlace care network"
       description="Applications are reviewed before clinical access is enabled."
     >
-      <IntegrationNotice>
-        Doctor registration cannot be submitted yet because the backend has no
-        doctor registration RPC, no medical-registration field, and no
-        professional-consent field. The verified schema is shown below without
-        inventing data fields.
-      </IntegrationNotice>
-      <form className="auth-form" onSubmit={(event) => event.preventDefault()}>
-        <FormField label="Full name" required />
-        <FormField label="Professional email" type="email" required />
+      <form className="auth-form" onSubmit={submit}>
+        <FormField label="Full name" autoComplete="name" value={form.full_name} onChange={(event) => set("full_name", event.target.value)} required />
+        <FormField label="Professional email" type="email" autoComplete="email" value={form.email} onChange={(event) => set("email", event.target.value)} required />
         <div className="form-grid two-column">
-          <FormField label="Mobile number" type="tel" required />
-          <PasswordField label="Password" minLength={8} required />
+          <FormField label="Mobile number" type="tel" autoComplete="tel" value={form.mobile_number} onChange={(event) => set("mobile_number", event.target.value)} required />
+          <PasswordField label="Password" autoComplete="new-password" minLength={8} value={form.password} onChange={(event) => set("password", event.target.value)} required />
         </div>
-        <FormField label="Specialty" required />
+        <FormField label="Specialty" value={form.specialty} onChange={(event) => set("specialty", event.target.value)} required />
+        <FormField label="Medical registration number" value={form.medical_registration} onChange={(event) => set("medical_registration", event.target.value)} required />
         <div className="form-grid two-column">
-          <FormField label="Consultation fee" type="number" min={0} required />
+          <FormField label="Consultation fee" type="number" min={0} value={form.consultation_fee} onChange={(event) => set("consultation_fee", event.target.value)} required />
           <FormField
             label="Average duration (minutes)"
             type="number"
             min={5}
+            max={240}
             step={5}
+            value={form.avg_consult_duration_mins}
+            onChange={(event) => set("avg_consult_duration_mins", event.target.value)}
             required
           />
         </div>
         <TextAreaField
           label="Specialization tags"
-          hint="Comma-separated, as configured by Doctor.specialization_tags."
-        />
-        <FormField
-          label="Medical registration information"
-          disabled
-          hint="No matching Doctor field exists in the backend."
+          hint="Comma-separated, for example: anxiety, trauma, adolescent care."
+          value={form.specialization_tags}
+          onChange={(event) => set("specialization_tags", event.target.value)}
         />
         <FileUpload
-          label={uploading ? "Uploading verification…" : "Verification document"}
+          label="Verification document"
           accept=".pdf,image/png,image/jpeg"
-          onFile={(file) => void upload(file)}
-          value={uploadedUrl || verification?.name}
+          onFile={(file) => {
+            if (file.size > 5 * 1024 * 1024) {
+              setError("Verification documents must be 5 MB or smaller.");
+              setVerification(undefined);
+              return;
+            }
+            setError("");
+            setVerification(file);
+          }}
+          value={verification?.name}
         />
-        {uploadError && <p className="form-alert">{uploadError}</p>}
         <label className="check-field">
-          <input type="checkbox" /> <span>Available for teleconsultation</span>
+          <input type="checkbox" checked={form.teleconsult_enabled} onChange={(event) => set("teleconsult_enabled", event.target.checked)} /> <span>Available for teleconsultation</span>
         </label>
         <label className="consent-check">
-          <input type="checkbox" />
+          <input type="checkbox" checked={form.professional_consent} onChange={(event) => set("professional_consent", event.target.checked)} required />
           <span>
             <strong>Professional terms and consent</strong>I confirm the
             information supplied is accurate and agree to clinical standards.
           </span>
         </label>
-        <Button type="button" disabled>
-          Submit application
+        {error && <p className="form-alert" role="alert">{error}</p>}
+        <Button type="submit" disabled={busy || !verification || !form.professional_consent}>
+          {busy ? "Submitting application…" : "Submit application"}
         </Button>
       </form>
       <p className="auth-switch">
@@ -626,7 +657,7 @@ export function DoctorPendingPage() {
             title={status === "Rejected" ? "Rejected" : "Access approval"}
             detail={
               status === "Rejected"
-                ? "The backend has no rejection-reason field to display."
+                ? auth.doctor?.rejection_reason || "Contact the care network team for next steps."
                 : "Dashboard access unlocks after approval."
             }
           />
@@ -665,40 +696,102 @@ function StatusLine({
 }
 
 export function OtpLoginPage() {
+  const auth = useAuth();
+  const navigate = useNavigate();
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      if (!sent) {
+        await authApi.requestPatientOtp(phone);
+        setSent(true);
+      } else {
+        await authApi.verifyPatientOtp({ phoneno: phone, otp: code });
+        await auth.restore();
+        navigate("/patient/dashboard", { replace: true });
+      }
+    } catch (unknownError) {
+      setError(normalizeApiError(unknownError).message);
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <AuthFrame
       portal="patient"
       eyebrow="One-time code"
       title="Sign in with your phone"
-      description="A secure OTP flow needs a server-side verification endpoint."
+      description={sent ? "Enter the six-digit code sent to your phone." : "We’ll send a code that expires in five minutes."}
     >
-      <IntegrationNotice>
-        The audited backend has no OTP request or verification RPC. Password
-        authentication remains available without storing credentials in the
-        browser.
-      </IntegrationNotice>
-      <Link className="button button-primary" to="/patient/login">
-        Use password sign in
-      </Link>
+      <form className="auth-form" onSubmit={submit}>
+        <FormField label="Phone number" type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} disabled={sent} required />
+        {sent && <FormField label="Verification code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))} required />}
+        {error && <p className="form-alert" role="alert">{error}</p>}
+        <Button type="submit" disabled={busy || !phone || (sent && code.length !== 6)}>{busy ? "Please wait…" : sent ? "Verify and sign in" : "Send one-time code"}</Button>
+        {sent && <Button type="button" variant="ghost" onClick={() => { setSent(false); setCode(""); }}>Use another number</Button>}
+      </form>
+      <p className="auth-switch"><Link to="/patient/login">Use password sign in</Link></p>
     </AuthFrame>
   );
 }
 
 export function ForgotPasswordPage({ portal }: { portal: PortalRole }) {
+  const [identity, setIdentity] = useState("");
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [sent, setSent] = useState(false);
+  const [complete, setComplete] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      if (portal === "patient") {
+        if (!sent) {
+          await authApi.requestPatientOtp(identity, "reset");
+          setSent(true);
+        } else {
+          await authApi.verifyPatientOtp({ phoneno: identity, otp: code, purpose: "reset", new_password: password });
+          setComplete(true);
+        }
+      } else {
+        await authApi.requestEmailPasswordReset(identity);
+        setComplete(true);
+      }
+    } catch (unknownError) {
+      setError(normalizeApiError(unknownError).message);
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <AuthFrame
       portal={portal}
       eyebrow="Account recovery"
       title="Reset your password"
-      description="Password recovery must be issued and delivered by your Frappe site."
+      description={portal === "patient" ? "Verify your phone before choosing a new password." : "We’ll email reset instructions if the account exists."}
     >
-      <IntegrationNotice>
-        No SoulPlace password-reset RPC or delivery channel is configured in the
-        backend. Ask your site administrator to reset access securely.
-      </IntegrationNotice>
-      <Link className="button button-primary" to={`/${portal}/login`}>
-        Return to sign in
-      </Link>
+      {complete ? (
+        <div className="auth-form" role="status">
+          <p>{portal === "patient" ? "Your password has been reset." : "If that email is registered, reset instructions are on the way."}</p>
+          <Link className="button button-primary" to={`/${portal}/login`}>Return to sign in</Link>
+        </div>
+      ) : (
+        <form className="auth-form" onSubmit={submit}>
+          <FormField label={portal === "patient" ? "Phone number" : "Account email"} type={portal === "patient" ? "tel" : "email"} autoComplete="username" value={identity} onChange={(event) => setIdentity(event.target.value)} disabled={sent} required />
+          {portal === "patient" && sent && <><FormField label="Verification code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))} required /><PasswordField label="New password" autoComplete="new-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} required /></>}
+          {error && <p className="form-alert" role="alert">{error}</p>}
+          <Button type="submit" disabled={busy || !identity || (sent && (code.length !== 6 || password.length < 8))}>{busy ? "Please wait…" : sent ? "Reset password" : portal === "patient" ? "Send reset code" : "Send reset email"}</Button>
+        </form>
+      )}
     </AuthFrame>
   );
 }

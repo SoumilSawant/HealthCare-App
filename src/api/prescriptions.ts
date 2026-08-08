@@ -1,9 +1,11 @@
 import {
   createRecord,
+  callRpc,
   getRecord,
   listRecords,
   updateRecord
 } from "./client";
+import { DEMO_MODE } from "./demo";
 import type { ListOptions, Prescription } from "../types/domain";
 
 export const prescriptionsApi = {
@@ -17,9 +19,11 @@ export const prescriptionsApi = {
     return getRecord<Prescription>("Prescription", name);
   },
   create(values: Omit<Partial<Prescription>, "name">) {
-    return createRecord<Prescription>("Prescription", values);
+    if (DEMO_MODE) return createRecord<Prescription>("Prescription", values);
+    return callRpc<Prescription>("soulplace.api.save_prescription", { values });
   },
   update(name: string, values: Partial<Prescription>) {
-    return updateRecord<Prescription>("Prescription", name, values);
+    if (DEMO_MODE) return updateRecord<Prescription>("Prescription", name, values);
+    return callRpc<Prescription>("soulplace.api.save_prescription", { values: { ...values, name } });
   }
 };

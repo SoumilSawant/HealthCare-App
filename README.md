@@ -40,9 +40,8 @@ directory is intentionally kept for reference and is not a supported runtime.
 
 No passwords, medical notes, tokens, or other sensitive care data are persisted
 to `localStorage`. Cookie sessions use `credentials: "include"` and Frappe CSRF
-tokens. An optional build-time API token is supported for controlled internal
-deployments, but an administrator token must never be embedded in a public
-browser bundle.
+tokens. Browser API tokens are intentionally unsupported because every
+`VITE_*` value is public in the compiled bundle.
 
 ## Setup
 
@@ -54,8 +53,8 @@ browser bundle.
 
 2. Copy `.env.example` to `.env.local`. For local development, set
    `FRAPPE_PROXY_TARGET=http://healthcare.test:8000` and leave
-   `VITE_FRAPPE_URL` empty. For a cross-origin production build, set
-   `VITE_FRAPPE_URL`.
+   `VITE_FRAPPE_URL` empty. Production should normally keep API requests
+   same-origin through an `/api` reverse proxy.
 
 3. Start the development server:
 
@@ -66,16 +65,37 @@ browser bundle.
    The local web UI is available at `http://localhost:8081/`.
 
    In development, the browser uses same-origin `/api` requests and Vite proxies
-   them to `FRAPPE_PROXY_TARGET`. In production, the browser uses
-   `VITE_FRAPPE_URL` directly.
+   them to `FRAPPE_PROXY_TARGET`.
 
 4. Run validation:
 
    ```bash
+   npm run lint
    npm run typecheck
-   npm test
+   npm run test:coverage
    npm run build
+   npm run test:e2e
    ```
+
+### Google Meet setup
+
+Doctors can create a private Google Meet room from a confirmed video
+appointment; the saved link then appears in both doctor and patient appointment
+details. To enable creation outside demo mode:
+
+1. Enable the Google Meet REST API in a Google Cloud project.
+2. Configure an OAuth consent screen and create an OAuth 2.0 Web client.
+3. Add each deployed app origin (for example `http://localhost:8081`) to the
+   client's Authorized JavaScript origins.
+4. Set `VITE_GOOGLE_CLIENT_ID` to that web client ID and restart/rebuild the app.
+5. Before public launch, publish verified homepage, privacy-policy, and terms
+   URLs; move the OAuth consent screen from Testing to Production; add the final
+   HTTPS origin; and complete Google verification if requested for the
+   `meetings.space.created` scope.
+
+The integration requests only the `meetings.space.created` scope when a doctor
+clicks **Create Google Meet**. The short-lived Google access token remains in
+browser memory; SoulPlace persists only the Meet space identifier and join URL.
 
 ## Frontend-only demo mode
 
@@ -111,8 +131,10 @@ The audited backend source is
 [`dheer-java/Soulplace`](https://github.com/dheer-java/Soulplace), branch
 `develop`, commit `130a924391dc8f4564f333ca8b5ac86271db99f1`.
 
-For same-origin deployment, serve the built Vite assets from the same parent
-origin as Frappe or reverse-proxy `/api` to Frappe. For cross-origin deployment:
+For production, serve the built Vite assets from the same origin as Frappe or
+reverse-proxy `/api` to Frappe. `public/_headers`, `public/_redirects`, and
+`vercel.json` provide security headers and SPA fallback for compatible hosts.
+For a deliberate cross-origin deployment:
 
 - configure the exact frontend origin in Frappe CORS settings;
 - allow credentials and secure session cookies;
@@ -121,23 +143,25 @@ origin as Frappe or reverse-proxy `/api` to Frappe. For cross-origin deployment:
 - ensure CSRF token retrieval is allowed;
 - assign `Patient App User` and `Doctor App User` roles only through trusted
   server-side registration/review logic;
-- implement record-level permission query conditions before clinical use.
+- extend `connect-src` in the production CSP with the exact Frappe origin.
 
 ### Authentication used by the frontend
 
 - Patient login: `soulplace.auth.patient_login`
 - Patient registration: `soulplace.auth.register_patient`
+- Patient OTP: `soulplace.auth.request_patient_otp` and
+  `soulplace.auth.verify_patient_otp`
+- Doctor registration: `soulplace.api.register_doctor`
 - Doctor/admin login: Frappe `/api/method/login`
-- Session restoration: `frappe.auth.get_logged_user`, followed by the
-  authenticated user's User/PatientUser/Doctor records
+- Session restoration: `soulplace.api.get_portal_identity`
 - Logout: `/api/method/logout`
 
 New patients are linked through `PatientUser.app_user` by the corrected
 registration RPC and receive the `Patient App User` role immediately; patients
 do not have an approval workflow. A phone-derived compatibility fallback
 remains for older records created before that correction. Doctors are linked by
-`Doctor.email` because Doctor has no `app_user` field, and only Doctor records
-use the admin approval workflow.
+the unique `Doctor.app_user` field and remain restricted until an administrator
+records an approval decision.
 
 ## Portal routes
 
@@ -170,18 +194,15 @@ availability, consultation, prescription, and approval data after updates.
 
 ## Deployment gate
 
-Read [the backend integration gaps](./docs/backend-integration-gaps.md) before
-deployment. Several required server permissions and endpoints are missing or
-inconsistent. With demo mode disabled, the UI names these gaps and does not
-substitute mock records or invent backend fields. The explicitly enabled local
-demo mode is the only frontend-data fallback.
+Read the [production checklist](./docs/production-checklist.md) and
+[runbook](./docs/production-runbook.md). The previously blocking backend
+permission, ownership, transaction, scheduling, registration, OTP, and audit
+issues are implemented locally. Google production verification, SMS delivery,
+legal policy approval, final hostnames, backups, and alert destinations remain
+environment-owned release gates.
 
 ## Dependency advisory note
 
-The project uses the current published `react-router-dom` 7.18.2. As of
-2026-07-29, npm reports
-[GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2)
-against React Router 7.12–8.2. The advisory applies only to unstable RSC APIs;
-this Vite SPA does not use RSC, actions, server actions, or React Router SSR.
-The advisory lists 8.3.0 as patched, but that package was not available from the
-npm registry during validation. Upgrade when the patched release is published.
+The project pins `react-router-dom` 7.18.2, the patched boundary for
+GHSA-qwww-vcr4-c8h2. `npm audit` is enforced in CI and currently reports no
+known vulnerabilities.

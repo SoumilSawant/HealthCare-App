@@ -3,10 +3,11 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type FormEvent,
   type PointerEvent,
   type ReactNode
 } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Activity,
   Bell,
@@ -19,7 +20,6 @@ import {
   ClipboardList,
   CreditCard,
   FileHeart,
-  FileText,
   HeartHandshake,
   Home,
   LayoutDashboard,
@@ -34,13 +34,12 @@ import {
   ShieldCheck,
   Stethoscope,
   UserRound,
-  UsersRound,
   Video,
   X
 } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
 import { DEMO_MODE } from "../api/demo";
-import { Brand, Button } from "./ui";
+import { Brand } from "./ui";
 
 interface NavItem {
   label: string;
@@ -196,15 +195,44 @@ export function Sidebar({
 
 export function Topbar({
   portal,
-  onMenu
+  onMenu,
+  items
 }: {
   portal: "patient" | "doctor" | "admin";
   onMenu(): void;
+  items: NavItem[];
 }) {
   const auth = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState("");
+  const [searchMessage, setSearchMessage] = useState("");
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const section = location.pathname.split("/").filter(Boolean).pop() || "dashboard";
-  const profilePath = `/${portal}/profile`;
+  const profilePath = portal === "admin" ? "/admin/dashboard" : `/${portal}/profile`;
+  useEffect(() => {
+    const focusSearch = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", focusSearch);
+    return () => document.removeEventListener("keydown", focusSearch);
+  }, []);
+  const search = (event: FormEvent) => {
+    event.preventDefault();
+    const normalized = query.trim().toLowerCase();
+    const match = items.find((item) => item.label.toLowerCase().includes(normalized));
+    if (!normalized || !match) {
+      setSearchMessage(normalized ? "No matching workspace page." : "Enter a page name to search.");
+      return;
+    }
+    setSearchMessage("");
+    setQuery("");
+    navigate(match.to);
+  };
   return (
     <header className="topbar">
       <div className="topbar-left">
@@ -219,17 +247,18 @@ export function Topbar({
           <strong>{section.replaceAll("-", " ")}</strong>
         </div>
       </div>
-      <label className="top-search">
-        <span className="sr-only">Search workspace</span>
+      <form className="top-search" role="search" onSubmit={search}>
+        <label htmlFor={`${portal}-workspace-search`} className="sr-only">Search workspace pages</label>
         <Search aria-hidden="true" />
-        <input type="search" placeholder={`Search ${portal} workspace`} />
-        <kbd>⌘ K</kbd>
-      </label>
+        <input ref={searchRef} id={`${portal}-workspace-search`} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${portal} workspace`} aria-describedby={`${portal}-search-status`} />
+        <kbd aria-hidden="true">⌘ K</kbd>
+        <span className="sr-only" id={`${portal}-search-status`} aria-live="polite">{searchMessage}</span>
+      </form>
       <div className="topbar-actions">
-        <button className="icon-button notification-button" aria-label="Notifications">
+        <button className="icon-button notification-button" aria-label="Notifications" aria-expanded={notificationsOpen} aria-controls={`${portal}-notifications`} onClick={() => setNotificationsOpen((open) => !open)}>
           <Bell />
-          <span aria-label="2 unread notifications">2</span>
         </button>
+        {notificationsOpen && <div className="notification-popover" id={`${portal}-notifications`} role="status"><strong>No new notifications</strong><small>Appointment updates will appear here.</small></div>}
         <Link className="profile-menu" to={profilePath}>
           <span className="avatar avatar-small">
             {auth.fullName?.charAt(0).toUpperCase() || "S"}
@@ -335,8 +364,11 @@ function PortalShell({
   };
 
   useEffect(() => {
-    setNavOpen(false);
-    resetDrag();
+    const frame = window.requestAnimationFrame(() => {
+      setNavOpen(false);
+      resetDrag();
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [location.pathname, location.search]);
 
   useEffect(() => {
@@ -383,7 +415,7 @@ function PortalShell({
         portal={portal}
       />
       <div className="app-main">
-        <Topbar portal={portal} onMenu={() => setNavOpen((current) => !current)} />
+        <Topbar portal={portal} items={items} onMenu={() => setNavOpen((current) => !current)} />
         <main id="main-content" className="page-content">
           <Outlet />
         </main>
@@ -417,7 +449,7 @@ export function UtilityLinks({ portal }: { portal: "patient" | "doctor" }) {
       <Link to={`/${portal}/profile`}>
         <UserRound /> Profile
       </Link>
-      {portal === "patient" && (
+      {portal === "patient" && import.meta.env.VITE_PAYMENTS_ENABLED === "true" && (
         <Link to="/patient/payment-methods">
           <CreditCard /> Payments
         </Link>

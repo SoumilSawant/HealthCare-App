@@ -1,0 +1,12 @@
+.git
+.github
+.env
+.env.*.local
+node_modules
+dist
+coverage
+legacy
+docs/legacy-mobile
+playwright-report
+test-results
+.impeccable

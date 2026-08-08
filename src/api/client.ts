@@ -23,7 +23,6 @@ interface FrappeEnvelope<T> {
 
 const configuredUrl = import.meta.env.VITE_FRAPPE_URL?.replace(/\/$/, "");
 export const FRAPPE_BASE_URL = configuredUrl || "";
-const apiToken = import.meta.env.VITE_FRAPPE_API_TOKEN;
 
 export class ApiError extends Error implements ApiErrorShape {
   status: number;
@@ -77,7 +76,7 @@ export function normalizeApiError(error: unknown, status = 0): ApiError {
 let csrfToken: string | undefined;
 
 async function getCsrfToken(): Promise<string | undefined> {
-  if (csrfToken || apiToken) return csrfToken;
+  if (csrfToken) return csrfToken;
   try {
     const response = await fetch(
       `${FRAPPE_BASE_URL}/api/method/frappe.auth.get_csrf_token`,
@@ -105,7 +104,6 @@ export async function request<T>(
   const isFormData = options.body instanceof FormData;
   const headers = new Headers(options.headers);
 
-  if (apiToken) headers.set("Authorization", `token ${apiToken}`);
   if (!isFormData && options.body !== undefined) {
     headers.set("Content-Type", "application/json");
   }
@@ -285,4 +283,9 @@ export async function uploadFile(
 
 export function clearSessionTokens() {
   csrfToken = undefined;
+}
+
+export function absoluteFrappeUrl(path?: string) {
+  if (!path || /^(https?:|#)/i.test(path)) return path || "";
+  return `${FRAPPE_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }

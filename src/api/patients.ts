@@ -1,4 +1,5 @@
-import { getRecord, listRecords, updateRecord } from "./client";
+import { callRpc, getRecord, listRecords, updateRecord } from "./client";
+import { DEMO_MODE } from "./demo";
 import type { ListOptions, PatientUser } from "../types/domain";
 
 export const patientsApi = {
@@ -12,6 +13,7 @@ export const patientsApi = {
     return getRecord<PatientUser>("PatientUser", name);
   },
   update(name: string, values: Partial<PatientUser>) {
-    return updateRecord<PatientUser>("PatientUser", name, values);
+    if (DEMO_MODE) return updateRecord<PatientUser>("PatientUser", name, values);
+    return callRpc<PatientUser>("soulplace.api.update_patient_profile", { values });
   }
 };

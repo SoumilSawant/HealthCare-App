@@ -32,7 +32,9 @@ export type DoctorStatus = "Active" | "Inactive";
 
 export interface Doctor extends FrappeDocument {
   full_name: string;
+  app_user?: string;
   specialty: string;
+  medical_registration?: string;
   mobile_number: string;
   email: string;
   consultation_fee: number;
@@ -44,6 +46,12 @@ export interface Doctor extends FrappeDocument {
   specialization_tags?: string;
   approval_status: DoctorApprovalStatus;
   verification_proof?: string;
+  professional_consent?: 0 | 1;
+  professional_consent_version?: string;
+  professional_consent_on?: string;
+  rejection_reason?: string;
+  reviewed_by?: string;
+  reviewed_on?: string;
 }
 
 export type AppointmentStatus =
@@ -92,7 +100,7 @@ export interface TeleconsultSession extends FrappeDocument {
   appointment: FrappeName;
   practitioner: FrappeName;
   patient: FrappeName;
-  provider: "Zoom" | "Jitsi" | "Custom";
+  provider: "Google Meet" | "Zoom" | "Jitsi" | "Custom";
   meeting_id?: string;
   meeting_link?: string;
   start_time?: string;
