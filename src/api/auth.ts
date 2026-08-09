@@ -104,6 +104,7 @@ export const authApi = {
 
   registerPatient(input: {
     phoneno: string;
+    email: string;
     password: string;
     name1: string;
     age: number;

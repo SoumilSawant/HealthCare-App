@@ -57,6 +57,7 @@ describe("typed Frappe API workflows", () => {
   it("submits the complete patient registration contract", async () => {
     await authApi.registerPatient({
       phoneno: "9876543210",
+      email: "patient@example.com",
       password: "SecurePass123!",
       name1: "Patient Name",
       age: 28,
@@ -75,12 +76,45 @@ describe("typed Frappe API workflows", () => {
     );
     expect(registration).toBeDefined();
     expect(JSON.parse(String(registration?.[1]?.body))).toMatchObject({
+      email: "patient@example.com",
       preferred_language: "English",
       emergency_contact_name: "Emergency Contact",
       emergency_contact_phone: "9876500000",
       consent_accepted: true,
       consent_version: "1.0"
     });
+  });
+
+  it("submits a doctor application through the registration RPC", async () => {
+    const verification = new File(["%PDF-1.4"], "registration.pdf", {
+      type: "application/pdf"
+    });
+    await authApi.registerDoctor({
+      full_name: "Doctor Name",
+      email: "doctor@example.com",
+      mobile_number: "9876543210",
+      password: "SecurePass123!",
+      specialty: "Clinical Psychology",
+      medical_registration: "MED-12345",
+      consultation_fee: 1200,
+      avg_consult_duration_mins: 45,
+      specialization_tags: "Anxiety, Stress",
+      teleconsult_enabled: true,
+      professional_consent: true,
+      consent_version: "1.0",
+      verification
+    });
+
+    const registration = vi.mocked(fetch).mock.calls.find(([url]) =>
+      String(url).includes("/api/method/soulplace.api.register_doctor")
+    );
+    expect(registration).toBeDefined();
+    const body = registration?.[1]?.body;
+    expect(body).toBeInstanceOf(FormData);
+    expect((body as FormData).get("full_name")).toBe("Doctor Name");
+    expect((body as FormData).get("email")).toBe("doctor@example.com");
+    expect((body as FormData).get("specialty")).toBe("Clinical Psychology");
+    expect((body as FormData).get("verification")).toBe(verification);
   });
 
   it("cancels an appointment with its configured reason field", async () => {

@@ -14,6 +14,7 @@ export type ConsentStatus = "Pending" | "Granted" | "Revoked";
 
 export interface PatientUser extends FrappeDocument {
   phoneno: string;
+  email?: string;
   name1: string;
   age: number;
   gender: Gender;

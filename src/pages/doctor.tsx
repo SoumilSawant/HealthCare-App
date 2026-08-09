@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
 import { appointmentsApi } from "../api/appointments";
+import { normalizeApiError } from "../api/client";
 import { consultationsApi } from "../api/consultations";
 import { doctorsApi } from "../api/doctors";
 import { patientsApi } from "../api/patients";
@@ -235,7 +236,8 @@ export function DoctorAppointmentDetailPage() {
     onSuccess: (_, status) => {
       toast.notify(`Appointment marked ${status.toLowerCase()}.`);
       void queryClient.invalidateQueries({ queryKey: ["appointment", appointmentId] });
-    }
+    },
+    onError: (error) => toast.notify(normalizeApiError(error).message)
   });
   const createMeet = useMutation({
     mutationFn: async () => {
@@ -281,8 +283,8 @@ export function DoctorAppointmentDetailPage() {
           <div className="patient-header"><span className="avatar avatar-profile">{patient.data?.name1?.charAt(0) || "P"}</span><div><p className="eyebrow">Patient</p><h2>{patient.data?.name1 || item.patient}</h2><p>{patient.data ? `${patient.data.age} years · ${patient.data.gender}` : "Loading profile"}</p></div></div>
           <dl className="detail-list"><div><dt>Reason</dt><dd>{item.symptoms || "Not provided"}</dd></div><div><dt>Format</dt><dd>{item.is_teleconsult ? "Teleconsult" : "In-person"}</dd></div><div><dt>Notes</dt><dd>{item.notes || "None"}</dd></div></dl>
           <div className="card-actions">
-            {item.status === "Pending" && <Button onClick={() => statusMutation.mutate("Confirmed")}>Confirm appointment</Button>}
-            {item.status === "Confirmed" && <Button onClick={() => statusMutation.mutate("Completed")}>Mark completed</Button>}
+            {item.status === "Pending" && <Button disabled={statusMutation.isPending} onClick={() => statusMutation.mutate("Confirmed")}>{statusMutation.isPending ? "Confirming…" : "Confirm appointment"}</Button>}
+            {item.status === "Confirmed" && <Button disabled={statusMutation.isPending} onClick={() => statusMutation.mutate("Completed")}>{statusMutation.isPending ? "Updating…" : "Mark completed"}</Button>}
           </div>
         </section>
         <aside className="panel">

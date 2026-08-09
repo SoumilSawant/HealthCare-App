@@ -33,6 +33,7 @@ const patients: PatientUser[] = [
   {
     name: "PAT-DEMO-001",
     phoneno: "9000000001",
+    email: "aarav@example.com",
     name1: "Aarav Mehta",
     age: 29,
     gender: "Male",
@@ -49,6 +50,7 @@ const patients: PatientUser[] = [
   {
     name: "PAT-DEMO-002",
     phoneno: "9000000002",
+    email: "maya@example.com",
     name1: "Maya Shah",
     age: 34,
     gender: "Female",
@@ -565,6 +567,7 @@ export function demoRestoreSession(): AuthSession {
 
 export function demoRegisterPatient(input: {
   phoneno: string;
+  email: string;
   name1: string;
   age: number;
   gender: string;
@@ -577,6 +580,7 @@ export function demoRegisterPatient(input: {
   const phone = input.phoneno.replace(/\D/g, "");
   const patient = demoCreateRecord<PatientUser>("PatientUser", {
     phoneno: phone,
+    email: input.email,
     name1: input.name1,
     age: input.age,
     gender: input.gender,

@@ -246,6 +246,7 @@ export function PortalLogin({ portal }: { portal: PortalRole }) {
 interface PatientRegistrationState {
   name1: string;
   phoneno: string;
+  email: string;
   password: string;
   age: string;
   gender: string;
@@ -267,6 +268,7 @@ export function PatientRegisterPage() {
   const [form, setForm] = useState<PatientRegistrationState>({
     name1: "",
     phoneno: "",
+    email: "",
     password: "",
     age: "",
     gender: "",
@@ -293,6 +295,7 @@ export function PatientRegisterPage() {
     try {
       const result = await authApi.registerPatient({
         phoneno: form.phoneno,
+        email: form.email,
         password: form.password,
         name1: form.name1,
         age: Number(form.age),
@@ -349,6 +352,15 @@ export function PatientRegisterPage() {
               autoComplete="tel"
               value={form.phoneno}
               onChange={(event) => set("phoneno", event.target.value)}
+              required
+            />
+            <FormField
+              label="Email address"
+              type="email"
+              autoComplete="email"
+              value={form.email}
+              onChange={(event) => set("email", event.target.value)}
+              hint="We’ll send appointment updates here."
               required
             />
             <PasswordField
@@ -468,6 +480,7 @@ export function PatientRegisterPage() {
               busy ||
               !form.name1 ||
               !form.phoneno ||
+              !form.email ||
               !form.password ||
               !form.age ||
               !form.gender ||
