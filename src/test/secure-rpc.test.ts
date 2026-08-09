@@ -80,12 +80,16 @@ describe("secure portal RPC contracts", () => {
     });
   });
 
-  it("loads portal appointments and consultations through scoped RPCs", async () => {
+  it("loads doctors, appointments, and consultations through scoped RPCs", async () => {
+    await doctorsApi.list({ limitPageLength: 25 });
+    await doctorsApi.get("DOC-1");
     await appointmentsApi.list({ limitPageLength: 25 });
     await appointmentsApi.get("APT-1");
     await consultationsApi.list({ limitPageLength: 25 });
     await consultationsApi.get("CON-1");
     const urls = vi.mocked(fetch).mock.calls.map(([url]) => String(url));
+    expect(urls.some((url) => url.endsWith("soulplace.api.list_portal_doctors"))).toBe(true);
+    expect(urls.some((url) => url.endsWith("soulplace.api.get_portal_doctor"))).toBe(true);
     expect(urls.some((url) => url.endsWith("soulplace.api.list_portal_appointments"))).toBe(true);
     expect(urls.some((url) => url.endsWith("soulplace.api.get_portal_appointment"))).toBe(true);
     expect(urls.some((url) => url.endsWith("soulplace.api.list_portal_consultations"))).toBe(true);

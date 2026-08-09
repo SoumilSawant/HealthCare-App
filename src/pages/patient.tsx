@@ -416,6 +416,33 @@ function AvailableSlots({ doctor, date, value, onChange }: { doctor: string; dat
   );
 }
 
+const BOOKING_STEPS = [
+  { label: "Pick a time", short: "Time" },
+  { label: "Your details", short: "Details" },
+  { label: "Review & confirm", short: "Review" },
+];
+
+function BookingStepIndicator({ current, total }: { current: number; total: number }) {
+  return (
+    <div className="booking-step-indicator" aria-label={`Step ${current} of ${total}`}>
+      {BOOKING_STEPS.map((s, i) => {
+        const num = i + 1;
+        const done = num < current;
+        const active = num === current;
+        return (
+          <div key={num} className={`bsi-step ${done ? "bsi-done" : active ? "bsi-active" : "bsi-upcoming"}`}>
+            <span className="bsi-bubble">
+              {done ? <CheckCircle2 /> : <span>{num}</span>}
+            </span>
+            <span className="bsi-label">{s.label}</span>
+            {num < total && <span className="bsi-line" aria-hidden="true" />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function BookingPage() {
   const auth = useAuth();
   const navigate = useNavigate();
@@ -440,12 +467,14 @@ export function BookingPage() {
       limitPageLength: 200
     })
   });
-  const selectedDoctor = doctors.data?.data.find((doctor) => doctor.name === form.doctor);
+
+  const effectiveDoctor = form.doctor || doctors.data?.data[0]?.name || "";
+  const selectedDoctor = doctors.data?.data.find((doctor) => doctor.name === effectiveDoctor);
   const create = useMutation({
     mutationFn: async () => {
       if (!auth.patient?.name) throw new Error("No patient profile is linked.");
       return appointmentsApi.book({
-        doctor: form.doctor,
+        doctor: effectiveDoctor,
         appointment_date: form.date,
         appointment_time: form.time,
         symptoms: form.symptoms,
@@ -471,39 +500,48 @@ export function BookingPage() {
   const minDate = new Date().toISOString().slice(0, 10);
   const canContinue =
     step === 1
-      ? Boolean(form.doctor)
+      ? Boolean(effectiveDoctor && form.date && form.time)
       : step === 2
-        ? Boolean(form.date && form.time)
-        : step === 3
-          ? Boolean(form.symptoms.trim() && form.privacyConsent && (form.type !== "teleconsult" || form.telemedicineConsent))
-          : true;
+        ? Boolean(form.symptoms.trim() && form.privacyConsent && (form.type !== "teleconsult" || form.telemedicineConsent))
+        : true;
+
+  const stepTitles = ["Choose a time", "Tell us what you need", "Review your request"];
 
   return (
     <>
       <Breadcrumbs items={[{ label: "Doctors", to: "/patient/doctors" }, { label: "Book consultation" }]} />
-      <PageHeader
-        eyebrow={`Booking · Step ${step} of 4`}
-        title={["Choose your doctor", "Choose a time", "Tell us what you need", "Review your request"][step - 1]}
-        description="Your request is sent to the doctor for confirmation."
-      />
+      <div className="booking-page-header">
+        <div>
+          <p className="eyebrow">Book consultation</p>
+          <h1>{stepTitles[step - 1]}</h1>
+          <p className="booking-subtitle">Your request is sent to the doctor for confirmation.</p>
+        </div>
+      </div>
       <div className="booking-layout">
         <section className="panel booking-form-panel">
-          <div className="progress-track"><span style={{ transform: `scaleX(${step / 4})` }} /></div>
+          <BookingStepIndicator current={step} total={3} />
           {step === 1 && (
-            doctors.isLoading ? <LoadingSkeleton rows={4} /> :
-            doctors.isError ? <ErrorState error={doctors.error} onRetry={() => void doctors.refetch()} /> :
-            <SelectField label="Doctor" value={form.doctor} onChange={(event) => set("doctor", event.target.value)} required>
-              <option value="">Select a doctor</option>
-              {doctors.data!.data.map((doctor) => <option value={doctor.name} key={doctor.name}>{doctor.full_name} · {doctor.specialty}</option>)}
-            </SelectField>
-          )}
-          {step === 2 && (
             <>
+              {doctors.isLoading ? (
+                <LoadingSkeleton rows={2} />
+              ) : doctors.isError ? (
+                <ErrorState error={doctors.error} onRetry={() => void doctors.refetch()} />
+              ) : (
+                <SelectField label="Doctor" value={effectiveDoctor} onChange={(event) => setForm((current) => ({ ...current, doctor: event.target.value, time: "" }))} required>
+                  {doctors.data!.data.map((doctor) => (
+                    <option value={doctor.name} key={doctor.name}>
+                      {doctor.full_name} · {doctor.specialty}
+                    </option>
+                  ))}
+                </SelectField>
+              )}
               <Calendar value={form.date} onChange={(value) => set("date", value)} min={minDate} />
-              {form.date && <AvailableSlots doctor={form.doctor} date={form.date} value={form.time} onChange={(val) => set("time", val)} />}
+              {effectiveDoctor && form.date && (
+                <AvailableSlots doctor={effectiveDoctor} date={form.date} value={form.time} onChange={(val) => set("time", val)} />
+              )}
             </>
           )}
-          {step === 3 && (
+          {step === 2 && (
             <>
               <fieldset className="choice-cards">
                 <legend>Consultation type</legend>
@@ -529,7 +567,7 @@ export function BookingPage() {
               )}
             </>
           )}
-          {step === 4 && (
+          {step === 3 && (
             <div className="booking-review">
               <div className="avatar avatar-doctor">{selectedDoctor?.full_name?.charAt(0) || "D"}</div>
               <h2>{selectedDoctor?.full_name}</h2>
@@ -547,7 +585,7 @@ export function BookingPage() {
           {create.isError && <ErrorState error={create.error} title="Appointment could not be created" />}
           <div className="sticky-actions">
             {step > 1 && <Button variant="ghost" onClick={() => setStep((value) => value - 1)}>Back</Button>}
-            {step < 4 ? (
+            {step < 3 ? (
               <Button disabled={!canContinue} onClick={() => setStep((value) => value + 1)}>Continue <ArrowRight /></Button>
             ) : (
               <Button disabled={create.isPending} onClick={() => create.mutate()}>

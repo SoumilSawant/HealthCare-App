@@ -7,6 +7,7 @@ import {
 } from "./client";
 import { DEMO_MODE } from "./demo";
 import type { Consultation, ListOptions } from "../types/domain";
+import { validateConsultation } from "../validation";
 
 export const consultationsApi = {
   list(options?: ListOptions<Consultation>) {
@@ -27,11 +28,13 @@ export const consultationsApi = {
     return getRecord<Consultation>("Consultation", name);
   },
   create(values: Omit<Partial<Consultation>, "name">) {
-    if (DEMO_MODE) return createRecord<Consultation>("Consultation", values);
-    return callRpc<Consultation>("soulplace.api.save_consultation", { values });
+    const validated = validateConsultation(values as Record<string, unknown>) as Partial<Consultation>;
+    if (DEMO_MODE) return createRecord<Consultation>("Consultation", validated);
+    return callRpc<Consultation>("soulplace.api.save_consultation", { values: validated });
   },
   update(name: string, values: Partial<Consultation>) {
-    if (DEMO_MODE) return updateRecord<Consultation>("Consultation", name, values);
-    return callRpc<Consultation>("soulplace.api.save_consultation", { values: { ...values, name } });
+    const validated = validateConsultation({ ...values, name }) as Partial<Consultation>;
+    if (DEMO_MODE) return updateRecord<Consultation>("Consultation", name, validated);
+    return callRpc<Consultation>("soulplace.api.save_consultation", { values: validated });
   }
 };

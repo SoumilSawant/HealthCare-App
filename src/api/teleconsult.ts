@@ -1,6 +1,7 @@
 import { callRpc, createRecord, getRecord, listRecords, updateRecord } from "./client";
 import { DEMO_MODE } from "./demo";
 import type { ListOptions, TeleconsultSession } from "../types/domain";
+import { validateGoogleMeet } from "../validation";
 
 export const teleconsultApi = {
   list(options?: ListOptions<TeleconsultSession>) {
@@ -23,21 +24,20 @@ export const teleconsultApi = {
     );
   },
   saveGoogleMeet(appointment: string, meeting_id: string, meeting_link: string) {
+    const validated = validateGoogleMeet(appointment, meeting_id, meeting_link);
     if (DEMO_MODE) {
       return createRecord<TeleconsultSession>("Teleconsult Session", {
-        appointment,
+        appointment: validated.appointment,
         practitioner: "DOC-DEMO-001",
         patient: "PAT-DEMO-001",
         provider: "Google Meet",
-        meeting_id,
-        meeting_link,
+        meeting_id: validated.meeting_id,
+        meeting_link: validated.meeting_link,
         session_status: "Created"
       });
     }
     return callRpc<TeleconsultSession>("soulplace.api.save_google_meet_session", {
-      appointment,
-      meeting_id,
-      meeting_link
+      ...validated
     });
   }
 };

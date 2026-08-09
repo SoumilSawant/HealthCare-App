@@ -127,9 +127,10 @@ should remain off for production builds.
 
 ## Frappe configuration
 
-The audited backend source is
+The matching backend source is
 [`dheer-java/Soulplace`](https://github.com/dheer-java/Soulplace), branch
-`develop`, commit `130a924391dc8f4564f333ca8b5ac86271db99f1`.
+`develop`. Deploy the frontend and backend revisions together and record both
+commit IDs in the release manifest.
 
 For production, serve the built Vite assets from the same origin as Frappe or
 reverse-proxy `/api` to Frappe. `public/_headers`, `public/_redirects`, and
@@ -187,6 +188,10 @@ split into:
 - `teleconsult.ts`
 - `consents.ts`
 - `admin.ts`
+
+All mutation services pass through `src/validation.ts` before making a request.
+The backend repeats these checks and remains the source of truth for permissions,
+ownership, allowed status transitions, slot availability, and clinical data.
 
 All backend-driven screens expose loading, empty, error, retry, disabled-submit,
 and mutation-feedback states. Query invalidation refreshes appointment,

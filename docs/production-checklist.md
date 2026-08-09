@@ -9,6 +9,7 @@
 - [ ] Configure Frappe allowed origins, secure/HTTP-only session cookies, CSRF, and trusted proxy headers.
 - [ ] Enable the Frappe password policy and configure malware scanning/quarantine for private doctor-verification uploads.
 - [ ] Configure SMS Settings and exercise OTP login and patient password reset on a real handset.
+- [ ] Configure a Default Outgoing Email Account, enable the scheduler, confirm at least one worker is online, and test doctor-request plus patient-confirmation/cancellation emails.
 - [ ] Add the final HTTPS origin to the Google OAuth Web client, publish the consent screen, and complete verification if Google requests it.
 - [ ] Publish approved privacy, terms, telemedicine-consent, retention, deletion, and emergency-support policies.
 - [ ] Run patient-versus-patient, doctor-versus-doctor, and cross-portal denial tests in staging.
@@ -31,6 +32,7 @@
 ## Clinical acceptance
 
 - [ ] Register one patient and one doctor from clean browser profiles.
+- [ ] Exercise invalid, boundary, duplicate, oversized-upload, unavailable-slot, and malformed-Meet-link cases against the deployed backend—not only browser validation.
 - [ ] Approve and reject test doctors; verify rejection reason visibility and pending access restrictions.
 - [ ] Book, overlap-check, confirm, reschedule, cancel, and complete appointments; inspect the audit timeline.
 - [ ] Save consultation notes and prescriptions; verify only the assigned doctor can read raw clinical notes, while the patient receives only the authored patient-friendly summary and their prescriptions.
