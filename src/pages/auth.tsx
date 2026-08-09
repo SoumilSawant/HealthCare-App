@@ -247,6 +247,7 @@ export function PortalLogin({ portal }: { portal: PortalRole }) {
 interface PatientRegistrationState {
   name1: string;
   phoneno: string;
+  email: string;
   password: string;
   age: string;
   gender: string;
@@ -268,6 +269,7 @@ export function PatientRegisterPage() {
   const [form, setForm] = useState<PatientRegistrationState>({
     name1: "",
     phoneno: "",
+    email: "",
     password: "",
     age: "",
     gender: "",
@@ -294,6 +296,7 @@ export function PatientRegisterPage() {
     try {
       const result = await authApi.registerPatient({
         phoneno: form.phoneno,
+        email: form.email,
         password: form.password,
         name1: form.name1,
         age: Number(form.age),
@@ -350,6 +353,15 @@ export function PatientRegisterPage() {
               autoComplete="tel"
               value={form.phoneno}
               onChange={(event) => set("phoneno", event.target.value)}
+              required
+            />
+            <FormField
+              label="Email address"
+              type="email"
+              autoComplete="email"
+              value={form.email}
+              onChange={(event) => set("email", event.target.value)}
+              hint="We’ll send appointment updates here."
               required
             />
             <PasswordField
@@ -469,6 +481,7 @@ export function PatientRegisterPage() {
               busy ||
               !form.name1 ||
               !form.phoneno ||
+              !form.email ||
               !form.password ||
               !form.age ||
               !form.gender ||
@@ -487,10 +500,14 @@ export function PatientRegisterPage() {
 }
 
 export function DoctorRegisterPage() {
+  const navigate = useNavigate();
+  const toast = useToast();
   const [verification, setVerification] = useState<File>();
   const [uploading, setUploading] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState("");
   const [uploadError, setUploadError] = useState("");
+  const [submitError, setSubmitError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const upload = async (file: File) => {
     setVerification(file);
@@ -506,6 +523,36 @@ export function DoctorRegisterPage() {
     }
   };
 
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    setBusy(true);
+    setSubmitError("");
+
+    try {
+      const result = await authApi.registerDoctor({
+        fullName: String(form.get("fullName") || ""),
+        email: String(form.get("email") || ""),
+        mobileNumber: String(form.get("mobileNumber") || ""),
+        password: String(form.get("password") || ""),
+        specialization: String(form.get("specialization") || ""),
+        consultationFee: Number(form.get("consultationFee") || 0),
+        avgConsultDurationMins: Number(form.get("avgConsultDurationMins") || 0),
+        specializationTags: String(form.get("specializationTags") || ""),
+        teleconsultEnabled: form.get("teleconsultEnabled") === "on",
+        professionalTermsConsent:
+          form.get("professionalTermsConsent") === "on",
+        verificationProof: uploadedUrl || undefined
+      });
+      toast.notify(result.message || "Doctor application submitted.");
+      navigate("/doctor/login", { replace: true });
+    } catch (error) {
+      setSubmitError(normalizeApiError(error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <AuthFrame
       portal="doctor"
@@ -513,24 +560,19 @@ export function DoctorRegisterPage() {
       title="Join the SoulPlace care network"
       description="Applications are reviewed before clinical access is enabled."
     >
-      <IntegrationNotice>
-        Doctor registration cannot be submitted yet because the backend has no
-        doctor registration RPC, no medical-registration field, and no
-        professional-consent field. The verified schema is shown below without
-        inventing data fields.
-      </IntegrationNotice>
-      <form className="auth-form" onSubmit={(event) => event.preventDefault()}>
-        <FormField label="Full name" required />
-        <FormField label="Professional email" type="email" required />
+      <form className="auth-form" onSubmit={submit}>
+        <FormField label="Full name" name="fullName" required />
+        <FormField label="Professional email" name="email" type="email" required />
         <div className="form-grid two-column">
-          <FormField label="Mobile number" type="tel" required />
-          <PasswordField label="Password" minLength={8} required />
+          <FormField label="Mobile number" name="mobileNumber" type="tel" required />
+          <PasswordField label="Password" name="password" minLength={8} required />
         </div>
-        <FormField label="Specialty" required />
+        <FormField label="Specialty" name="specialization" required />
         <div className="form-grid two-column">
-          <FormField label="Consultation fee" type="number" min={0} required />
+          <FormField label="Consultation fee" name="consultationFee" type="number" min={0} required />
           <FormField
             label="Average duration (minutes)"
+            name="avgConsultDurationMins"
             type="number"
             min={5}
             step={5}
@@ -539,6 +581,7 @@ export function DoctorRegisterPage() {
         </div>
         <TextAreaField
           label="Specialization tags"
+          name="specializationTags"
           hint="Comma-separated, as configured by Doctor.specialization_tags."
         />
         <FormField
@@ -554,17 +597,18 @@ export function DoctorRegisterPage() {
         />
         {uploadError && <p className="form-alert">{uploadError}</p>}
         <label className="check-field">
-          <input type="checkbox" /> <span>Available for teleconsultation</span>
+          <input type="checkbox" name="teleconsultEnabled" /> <span>Available for teleconsultation</span>
         </label>
         <label className="consent-check">
-          <input type="checkbox" />
+          <input type="checkbox" name="professionalTermsConsent" />
           <span>
             <strong>Professional terms and consent</strong>I confirm the
             information supplied is accurate and agree to clinical standards.
           </span>
         </label>
-        <Button type="button" disabled>
-          Submit application
+        {submitError && <p className="form-alert">{submitError}</p>}
+        <Button type="submit" disabled={busy || uploading}>
+          {busy ? "Submitting application…" : "Submit application"}
         </Button>
       </form>
       <p className="auth-switch">

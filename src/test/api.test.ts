@@ -40,7 +40,7 @@ describe("typed Frappe API workflows", () => {
       is_teleconsult: 1
     });
     const mutation = vi.mocked(fetch).mock.calls.find(([url]) =>
-      String(url).includes("/api/resource/Appointment")
+      String(url).includes("/api/resource/Patient%20Appointment")
     );
     expect(mutation).toBeDefined();
     expect(JSON.parse(String(mutation?.[1]?.body))).toMatchObject({
@@ -54,6 +54,7 @@ describe("typed Frappe API workflows", () => {
   it("submits the complete patient registration contract", async () => {
     await authApi.registerPatient({
       phoneno: "9876543210",
+      email: "patient@example.com",
       password: "SecurePass123!",
       name1: "Patient Name",
       age: 28,
@@ -72,6 +73,7 @@ describe("typed Frappe API workflows", () => {
     );
     expect(registration).toBeDefined();
     expect(JSON.parse(String(registration?.[1]?.body))).toMatchObject({
+      email: "patient@example.com",
       preferred_language: "English",
       emergency_contact_name: "Emergency Contact",
       emergency_contact_phone: "9876500000",
@@ -80,10 +82,35 @@ describe("typed Frappe API workflows", () => {
     });
   });
 
+  it("submits a doctor application through the registration RPC", async () => {
+    await authApi.registerDoctor({
+      fullName: "Doctor Name",
+      email: "doctor@example.com",
+      mobileNumber: "9876543210",
+      password: "SecurePass123!",
+      specialization: "Clinical Psychology",
+      consultationFee: 1200,
+      avgConsultDurationMins: 45,
+      specializationTags: "Anxiety, Stress",
+      teleconsultEnabled: true,
+      professionalTermsConsent: true
+    });
+
+    const registration = vi.mocked(fetch).mock.calls.find(([url]) =>
+      String(url).includes("/api/method/soulplace.auth.register_doctor")
+    );
+    expect(registration).toBeDefined();
+    expect(JSON.parse(String(registration?.[1]?.body))).toMatchObject({
+      fullName: "Doctor Name",
+      email: "doctor@example.com",
+      specialization: "Clinical Psychology"
+    });
+  });
+
   it("cancels an appointment with its configured reason field", async () => {
     await appointmentsApi.cancel("APT-1", "Schedule conflict");
     const mutation = vi.mocked(fetch).mock.calls.find(([url]) =>
-      String(url).endsWith("/api/resource/Appointment/APT-1")
+      String(url).endsWith("/api/resource/Patient%20Appointment/APT-1")
     );
     expect(JSON.parse(String(mutation?.[1]?.body))).toEqual({
       status: "Cancelled",

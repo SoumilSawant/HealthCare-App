@@ -405,7 +405,7 @@ function AvailableSlots({ doctor, date, value, onChange }: { doctor: string; dat
       <h3 style={{ margin: "1rem 0 0.5rem" }}>Available Times</h3>
       {slots.length ? (
         <div className="time-grid">
-          {slots.map(time => (
+          {slots.map((time: string) => (
             <button
               key={time}
               type="button"
