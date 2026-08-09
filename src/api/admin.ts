@@ -21,7 +21,7 @@ export const adminApi = {
         fields: ["name", "approval_status"],
         limitPageLength: 1000
       }),
-      listRecords<Appointment>("Appointment", {
+      listRecords<Appointment>("Patient Appointment", {
         fields: ["name", "appointment_date", "status"],
         limitPageLength: 1000
       }),
@@ -82,7 +82,7 @@ export const adminApi = {
     });
   },
   appointments() {
-    return listRecords<Appointment>("Appointment", {
+    return listRecords<Appointment>("Patient Appointment", {
       fields: ["*"],
       limitPageLength: 500
     });
