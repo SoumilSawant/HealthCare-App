@@ -26,6 +26,11 @@ interface PatientLoginResponse {
   };
 }
 
+interface DoctorRegistrationResponse {
+  success: boolean;
+  message: string;
+}
+
 interface UserDocument {
   name: string;
   full_name?: string;
@@ -103,6 +108,7 @@ export const authApi = {
 
   registerPatient(input: {
     phoneno: string;
+    email: string;
     password: string;
     name1: string;
     age: number;
@@ -134,6 +140,26 @@ export const authApi = {
     }
     return callRpc<PatientLoginResponse>(
       "soulplace.auth.register_patient",
+      input,
+      true
+    );
+  },
+
+  registerDoctor(input: {
+    fullName: string;
+    email: string;
+    mobileNumber: string;
+    password: string;
+    specialization: string;
+    consultationFee: number;
+    avgConsultDurationMins: number;
+    specializationTags: string;
+    teleconsultEnabled: boolean;
+    professionalTermsConsent: boolean;
+    verificationProof?: string;
+  }) {
+    return callRpc<DoctorRegistrationResponse>(
+      "soulplace.auth.register_doctor",
       input,
       true
     );
