@@ -51,9 +51,10 @@ export interface RegisterDoctorParams {
 }
 
 export const authApi = {
-  loginPatient(phoneOrEmail: string, password: string) {
+  loginPatient(email: string, password: string) {
+    const normalizedEmail = normalizeEmail(email);
     if (DEMO_MODE) {
-      const account = demoLogin("patient", phoneOrEmail, password);
+      const account = demoLogin("patient", normalizedEmail, password);
       const session = demoRestoreSession();
       return Promise.resolve({
         success: true,
@@ -69,12 +70,9 @@ export const authApi = {
           : undefined
       } satisfies PatientLoginResponse);
     }
-    const usr = phoneOrEmail.includes("@")
-      ? normalizeEmail(phoneOrEmail)
-      : `${normalizeIndianPhone(phoneOrEmail)}@soulplace.local`;
     return callRpc<PatientLoginResponse>(
       "soulplace.auth.patient_login",
-      { usr, pwd: password },
+      { usr: normalizedEmail, pwd: password },
       true
     );
   },
@@ -119,7 +117,7 @@ export const authApi = {
   },
 
   registerPatient(input: {
-    phoneno: string;
+    phoneno?: string;
     email: string;
     password: string;
     name1: string;
@@ -210,9 +208,36 @@ export const authApi = {
   },
 
   requestEmailPasswordReset(email: string) {
+    if (DEMO_MODE) return Promise.resolve();
     return callRpc<void>(
       "frappe.core.doctype.user.user.reset_password",
       { user: normalizeEmail(email) },
+      true
+    );
+  },
+  requestPatientPasswordReset(email: string) {
+    if (DEMO_MODE) return Promise.resolve({ sent: true });
+    return callRpc<{ sent: boolean }>(
+      "soulplace.auth.request_patient_password_reset",
+      { email: normalizeEmail(email) },
+      true
+    );
+  },
+
+  validatePatientPasswordResetKey(key: string) {
+    if (DEMO_MODE) return Promise.resolve({ valid: true });
+    return callRpc<{ valid: boolean }>(
+      "soulplace.auth.validate_patient_password_reset_key",
+      { key },
+      true
+    );
+  },
+
+  completePasswordReset(key: string, newPassword: string) {
+    if (DEMO_MODE) return Promise.resolve("/patient/login");
+    return callRpc<string>(
+      "frappe.core.doctype.user.user.update_password",
+      { key, new_password: newPassword, logout_all_sessions: 1 },
       true
     );
   },

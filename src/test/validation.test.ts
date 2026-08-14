@@ -39,6 +39,13 @@ describe("production input validation", () => {
     });
   });
 
+  it("allows patient registration without a phone number", () => {
+    expect(validatePatientRegistration({ ...patient, phoneno: "" })).toMatchObject({
+      phoneno: "",
+      email: "person@example.com"
+    });
+  });
+
   it.each([
     [{ ...patient, age: 12 }, "Age must be between 13 and 120."],
     [{ ...patient, password: "short" }, "Password must contain at least 8 characters."],

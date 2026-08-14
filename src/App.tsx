@@ -24,6 +24,7 @@ const DoctorRegisterPage = authPage("DoctorRegisterPage");
 const ForgotPasswordPage = authPage("ForgotPasswordPage");
 const OtpLoginPage = authPage("OtpLoginPage");
 const PatientRegisterPage = authPage("PatientRegisterPage");
+const PatientResetPasswordPage = authPage("PatientResetPasswordPage");
 const PortalLogin = authPage("PortalLogin");
 const BookingConfirmedPage = patientPage("BookingConfirmedPage");
 const BookingPage = patientPage("BookingPage");
@@ -129,6 +130,7 @@ export default function App() {
       <Route path="/patient/register" element={<GuestOnly portal="patient"><PatientRegisterPage /></GuestOnly>} />
       <Route path="/patient/otp-login" element={<GuestOnly portal="patient"><OtpLoginPage /></GuestOnly>} />
       <Route path="/patient/forgot-password" element={<GuestOnly portal="patient"><ForgotPasswordPage portal="patient" /></GuestOnly>} />
+      <Route path="/patient/reset-password" element={<PatientResetPasswordPage />} />
       <Route element={<RequirePatient />}>
         <Route path="/patient" element={<PatientShell />}>
           <Route index element={<Navigate to="dashboard" replace />} />

@@ -105,7 +105,7 @@ function boundedText(value: unknown, field: string, label: string, maximum: numb
 }
 
 export function validatePatientRegistration<T extends {
-  phoneno: string;
+  phoneno?: string;
   email: string;
   password: string;
   name1: string;
@@ -137,7 +137,7 @@ export function validatePatientRegistration<T extends {
 
   return {
     ...input,
-    phoneno: normalizeIndianPhone(input.phoneno),
+    phoneno: optionalIndianPhone(input.phoneno, "phoneno"),
     email: normalizeEmail(input.email),
     password: password(input.password),
     name1: text(input.name1, "name1", "Name", { required: true, min: 2, max: 140 }),

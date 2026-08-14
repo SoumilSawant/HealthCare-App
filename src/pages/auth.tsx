@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
   CheckCircle2,
@@ -118,8 +118,8 @@ export function PortalLogin({ portal }: { portal: PortalRole }) {
       eyebrow: "Patient sign in",
       title: "Welcome back",
       description: "Continue to your personal care space.",
-      userLabel: "Phone number",
-      placeholder: "+91 98765 43210"
+      userLabel: "Email address",
+      placeholder: "patient@example.com"
     },
     doctor: {
       eyebrow: "Doctor portal",
@@ -189,7 +189,7 @@ export function PortalLogin({ portal }: { portal: PortalRole }) {
       <form className="auth-form" onSubmit={submit} noValidate>
         <FormField
           label={labels.userLabel}
-          type={portal === "patient" ? "tel" : "email"}
+          type="email"
           autoComplete="username"
           placeholder={labels.placeholder}
           value={username}
@@ -225,14 +225,6 @@ export function PortalLogin({ portal }: { portal: PortalRole }) {
             {portal === "doctor" ? "Apply as a doctor" : "Create an account"}
           </Link>
         </p>
-      )}
-      {portal === "patient" && (
-        <div className="auth-alt">
-          <span>or</span>
-          <Link className="button button-secondary" to="/patient/otp-login">
-            Sign in with a one-time code
-          </Link>
-        </div>
       )}
       <nav className="portal-switcher" aria-label="Switch portal">
         {portal !== "patient" && <Link to="/patient/login">Patient</Link>}
@@ -347,12 +339,11 @@ export function PatientRegisterPage() {
               required
             />
             <FormField
-              label="Phone number"
+              label="Phone number (optional)"
               type="tel"
               autoComplete="tel"
               value={form.phoneno}
               onChange={(event) => set("phoneno", event.target.value)}
-              required
             />
             <FormField
               label="Email address"
@@ -479,7 +470,6 @@ export function PatientRegisterPage() {
             disabled={
               busy ||
               !form.name1 ||
-              !form.phoneno ||
               !form.email ||
               !form.password ||
               !form.age ||
@@ -534,10 +524,10 @@ export function DoctorRegisterPage() {
         ...form,
         consultation_fee: Number(form.consultation_fee),
         avg_consult_duration_mins: Number(form.avg_consult_duration_mins),
-      consent_version: import.meta.env.VITE_CONSENT_VERSION || "1.0",
-      verification
-    });
-    await auth.restore();
+        consent_version: import.meta.env.VITE_CONSENT_VERSION || "1.0",
+        verification
+      });
+      await auth.restore();
       toast.notify("Application submitted for review.");
       navigate("/doctor/pending", { replace: true });
     } catch (unknownError) {
@@ -810,9 +800,6 @@ export function OtpLoginPage() {
 
 export function ForgotPasswordPage({ portal }: { portal: PortalRole }) {
   const [identity, setIdentity] = useState("");
-  const [code, setCode] = useState("");
-  const [password, setPassword] = useState("");
-  const [sent, setSent] = useState(false);
   const [complete, setComplete] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -822,17 +809,11 @@ export function ForgotPasswordPage({ portal }: { portal: PortalRole }) {
     setError("");
     try {
       if (portal === "patient") {
-        if (!sent) {
-          await authApi.requestPatientOtp(identity, "reset");
-          setSent(true);
-        } else {
-          await authApi.verifyPatientOtp({ phoneno: identity, otp: code, purpose: "reset", new_password: password });
-          setComplete(true);
-        }
+        await authApi.requestPatientPasswordReset(identity);
       } else {
         await authApi.requestEmailPasswordReset(identity);
-        setComplete(true);
       }
+      setComplete(true);
     } catch (unknownError) {
       setError(normalizeApiError(unknownError).message);
     } finally {
@@ -844,19 +825,154 @@ export function ForgotPasswordPage({ portal }: { portal: PortalRole }) {
       portal={portal}
       eyebrow="Account recovery"
       title="Reset your password"
-      description={portal === "patient" ? "Verify your phone before choosing a new password." : "We’ll email reset instructions if the account exists."}
+      description="We’ll email reset instructions if the account exists."
     >
       {complete ? (
         <div className="auth-form" role="status">
-          <p>{portal === "patient" ? "Your password has been reset." : "If that email is registered, reset instructions are on the way."}</p>
+          <p>If that email is registered, reset instructions are on the way.</p>
           <Link className="button button-primary" to={`/${portal}/login`}>Return to sign in</Link>
         </div>
       ) : (
         <form className="auth-form" onSubmit={submit}>
-          <FormField label={portal === "patient" ? "Phone number" : "Account email"} type={portal === "patient" ? "tel" : "email"} autoComplete="username" value={identity} onChange={(event) => setIdentity(event.target.value)} disabled={sent} required />
-          {portal === "patient" && sent && <><FormField label="Verification code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))} required /><PasswordField label="New password" autoComplete="new-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} required /></>}
+          <FormField label="Account email" type="email" autoComplete="email" value={identity} onChange={(event) => setIdentity(event.target.value)} required />
           {error && <p className="form-alert" role="alert">{error}</p>}
-          <Button type="submit" disabled={busy || !identity || (sent && (code.length !== 6 || password.length < 8))}>{busy ? "Please wait…" : sent ? "Reset password" : portal === "patient" ? "Send reset code" : "Send reset email"}</Button>
+          <Button type="submit" disabled={busy || !identity}>{busy ? "Please wait…" : "Send reset email"}</Button>
+        </form>
+      )}
+    </AuthFrame>
+  );
+}
+
+export function PatientResetPasswordPage() {
+  const [searchParams] = useSearchParams();
+  const resetKey = searchParams.get("key") || "";
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [complete, setComplete] = useState(false);
+  const [linkValidation, setLinkValidation] = useState<{
+    key: string;
+    status: "checking" | "valid" | "invalid" | "error";
+  }>({
+    key: resetKey,
+    status: resetKey ? "checking" : "invalid"
+  });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const linkStatus = !resetKey
+    ? "invalid"
+    : linkValidation.key === resetKey
+      ? linkValidation.status
+      : "checking";
+
+  useEffect(() => {
+    if (!resetKey) return;
+
+    let active = true;
+    authApi.validatePatientPasswordResetKey(resetKey)
+      .then(({ valid }) => {
+        if (active) {
+          setLinkValidation({
+            key: resetKey,
+            status: valid ? "valid" : "invalid"
+          });
+        }
+      })
+      .catch(() => {
+        if (active) setLinkValidation({ key: resetKey, status: "error" });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [resetKey]);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (password !== confirmation) {
+      setError("Passwords do not match.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await authApi.completePasswordReset(resetKey, password);
+      setComplete(true);
+    } catch (unknownError) {
+      const normalizedError = normalizeApiError(unknownError);
+      if (
+        normalizedError.status === 410 ||
+        normalizedError.message.trim().toUpperCase() === "GONE"
+      ) {
+        setLinkValidation({ key: resetKey, status: "invalid" });
+      } else {
+        setError(normalizedError.message);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <AuthFrame
+      portal="patient"
+      eyebrow="Account recovery"
+      title="Choose a new password"
+      description="Create a new password for your SoulPlace patient account."
+    >
+      {linkStatus === "checking" ? (
+        <div className="auth-form" role="status">
+          <p>Checking your password-reset link…</p>
+        </div>
+      ) : linkStatus === "invalid" ? (
+        <div className="auth-form" role="alert">
+          <p>
+            This password-reset link is invalid or has expired. Please request
+            a new link to continue.
+          </p>
+          <Link className="button button-primary" to="/patient/forgot-password">
+            Request another link
+          </Link>
+        </div>
+      ) : linkStatus === "error" ? (
+        <div className="auth-form" role="alert">
+          <p>We couldn’t verify this password-reset link. Please try again.</p>
+          <Button type="button" onClick={() => window.location.reload()}>
+            Try again
+          </Button>
+        </div>
+      ) : complete ? (
+        <div className="auth-form" role="status">
+          <p>Your password has been updated successfully.</p>
+          <Link className="button button-primary" to="/patient/login">
+            Continue to sign in
+          </Link>
+        </div>
+      ) : (
+        <form className="auth-form" onSubmit={submit}>
+          <PasswordField
+            label="New password"
+            autoComplete="new-password"
+            minLength={8}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            hint="Use at least 8 characters."
+            required
+          />
+          <PasswordField
+            label="Confirm new password"
+            autoComplete="new-password"
+            minLength={8}
+            value={confirmation}
+            onChange={(event) => setConfirmation(event.target.value)}
+            required
+          />
+          {error && <p className="form-alert" role="alert">{error}</p>}
+          <Button
+            type="submit"
+            disabled={busy || password.length < 8 || confirmation.length < 8}
+          >
+            {busy ? "Updating password…" : "Update password"}
+          </Button>
         </form>
       )}
     </AuthFrame>

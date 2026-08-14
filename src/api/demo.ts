@@ -39,7 +39,7 @@ const patients: PatientUser[] = [
     gender: "Male",
     livingstatus: 1,
     therapyexp: "Some previous experience",
-    app_user: "9000000001@soulplace.demo",
+    app_user: "aarav@example.com",
     mobile_no_verified: 1,
     preferred_language: "English",
     emergency_contact_name: "Nisha Mehta",
@@ -56,7 +56,7 @@ const patients: PatientUser[] = [
     gender: "Female",
     livingstatus: 0,
     therapyexp: "Currently in therapy",
-    app_user: "9000000002@soulplace.demo",
+    app_user: "maya@example.com",
     mobile_no_verified: 1,
     preferred_language: "Hindi",
     emergency_contact_name: "Rohan Shah",
@@ -469,7 +469,7 @@ type DemoAccount = {
 export const DEMO_ACCOUNTS: DemoAccount[] = [
   {
     portal: "patient",
-    username: "9000000001",
+    username: "aarav@example.com",
     password: "Demo1234!",
     profileName: "PAT-DEMO-001",
     fullName: "Aarav Mehta",
@@ -513,8 +513,7 @@ export function demoLogin(
   username: string,
   password: string
 ) {
-  const normalizedUsername =
-    portal === "patient" ? username.replace(/\D/g, "") : username.trim();
+  const normalizedUsername = username.trim();
   const account = DEMO_ACCOUNTS.find(
     (candidate) =>
       candidate.portal === portal &&
@@ -566,7 +565,7 @@ export function demoRestoreSession(): AuthSession {
 }
 
 export function demoRegisterPatient(input: {
-  phoneno: string;
+  phoneno?: string;
   email: string;
   name1: string;
   age: number;
@@ -577,7 +576,7 @@ export function demoRegisterPatient(input: {
   emergency_contact_name: string;
   emergency_contact_phone: string;
 }) {
-  const phone = input.phoneno.replace(/\D/g, "");
+  const phone = (input.phoneno || "").replace(/\D/g, "");
   const patient = demoCreateRecord<PatientUser>("PatientUser", {
     phoneno: phone,
     email: input.email,
@@ -586,8 +585,8 @@ export function demoRegisterPatient(input: {
     gender: input.gender,
     livingstatus: input.livingstatus === "With family" ? 1 : 0,
     therapyexp: input.therapyexp,
-    app_user: `${phone}@soulplace.demo`,
-    mobile_no_verified: 1,
+    app_user: input.email,
+    mobile_no_verified: phone ? 1 : 0,
     preferred_language: input.preferred_language,
     emergency_contact_name: input.emergency_contact_name,
     emergency_contact_phone: input.emergency_contact_phone,
@@ -605,7 +604,7 @@ export function demoRegisterPatient(input: {
   }
   storeSession({
     portal: "patient",
-    username: phone,
+    username: input.email,
     profileName: patient.name
   });
   return patient;

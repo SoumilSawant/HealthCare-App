@@ -56,7 +56,7 @@ describe("typed Frappe API workflows", () => {
 
   it("submits the complete patient registration contract", async () => {
     await authApi.registerPatient({
-      phoneno: "9876543210",
+      phoneno: "",
       email: "patient@example.com",
       password: "SecurePass123!",
       name1: "Patient Name",
@@ -76,6 +76,7 @@ describe("typed Frappe API workflows", () => {
     );
     expect(registration).toBeDefined();
     expect(JSON.parse(String(registration?.[1]?.body))).toMatchObject({
+      phoneno: "",
       email: "patient@example.com",
       preferred_language: "English",
       emergency_contact_name: "Emergency Contact",

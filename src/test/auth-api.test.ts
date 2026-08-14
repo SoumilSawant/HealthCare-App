@@ -58,16 +58,76 @@ describe("authentication API contracts", () => {
     });
   });
 
-  it("normalizes phone numbers before patient login", async () => {
+  it("normalizes email addresses before patient login", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementationOnce(() =>
-      response({ success: true, user: { name: "9876543210@soulplace.local" } })
+      response({ success: true, user: { name: "patient@example.com" } })
     );
 
-    await authApi.loginPatient("(98765) 43210", "password");
+    await authApi.loginPatient(" Patient@Example.com ", "password");
 
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({
-      usr: "9876543210@soulplace.local",
+      usr: "patient@example.com",
       pwd: "password"
+    });
+  });
+
+  it("requests standard password reset instructions using a normalized email", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementationOnce(() =>
+      response(null)
+    );
+
+    await authApi.requestEmailPasswordReset(" Patient@Example.com ");
+
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({
+      user: "patient@example.com"
+    });
+  });
+
+  it("requests a patient reset link through the SoulPlace compatibility endpoint", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementationOnce(() =>
+      response({ sent: true })
+    );
+
+    await authApi.requestPatientPasswordReset(" Patient@Example.com ");
+
+    expect(String(fetchMock.mock.calls[0][0])).toContain(
+      "/api/method/soulplace.auth.request_patient_password_reset"
+    );
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({
+      email: "patient@example.com"
+    });
+  });
+
+  it("submits a reset key and new password to Frappe", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementationOnce(() =>
+      response("/patient")
+    );
+
+    await authApi.completePasswordReset("reset-key", "NewPassword123!");
+
+    expect(String(fetchMock.mock.calls[0][0])).toContain(
+      "/api/method/frappe.core.doctype.user.user.update_password"
+    );
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({
+      key: "reset-key",
+      new_password: "NewPassword123!",
+      logout_all_sessions: 1
+    });
+  });
+
+  it("validates a patient reset key before showing the password form", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementationOnce(() =>
+      response({ valid: true })
+    );
+
+    await expect(authApi.validatePatientPasswordResetKey("reset-key"))
+      .resolves.toEqual({ valid: true });
+
+    expect(String(fetchMock.mock.calls[0][0])).toContain(
+      "/api/method/soulplace.auth.validate_patient_password_reset_key"
+    );
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({
+      key: "reset-key"
     });
   });
 

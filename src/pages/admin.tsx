@@ -15,7 +15,7 @@ import {
   XCircle
 } from "lucide-react";
 import { adminApi } from "../api/admin";
-import { absoluteFrappeUrl } from "../api/client";
+import { absoluteFrappeUrl, normalizeApiError } from "../api/client";
 import { doctorsApi } from "../api/doctors";
 import {
   ConfirmDialog,
@@ -208,8 +208,8 @@ export function AdminDoctorsPage() {
       void queryClient.invalidateQueries({ queryKey: ["admin", "doctors"] });
       void queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
     },
-    onError: () => {
-      toast.notify("Failed to delete doctor", "error");
+    onError: (e) => {
+      toast.notify(`Failed to delete doctor: ${normalizeApiError(e).message}`, "error");
     }
   });
 
