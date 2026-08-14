@@ -29,8 +29,37 @@ describe("Google Meet API", () => {
         method: "POST",
         headers: expect.objectContaining({
           Authorization: "Bearer short-lived-token"
+        }),
+        body: JSON.stringify({
+          config: { accessType: "RESTRICTED", moderation: "ON" }
         })
       })
+    );
+  });
+
+  it("rejects malformed or inconsistent Google space responses", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          name: "not-a-space",
+          meetingUri: "https://meet.google.com/abc-defg-hij"
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+
+    await expect(createGoogleMeetSpaceWithToken("token")).rejects.toThrow(
+      /incomplete meeting space/i
+    );
+  });
+
+  it("surfaces actionable Google API errors", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response("{}", { status: 429, headers: { "Content-Type": "application/json" } })
+    );
+
+    await expect(createGoogleMeetSpaceWithToken("token")).rejects.toThrow(
+      /rate-limited/i
     );
   });
 
@@ -38,6 +67,8 @@ describe("Google Meet API", () => {
     expect(isGoogleMeetLink("https://meet.google.com/abc-defg-hij")).toBe(true);
     expect(isGoogleMeetLink("http://meet.google.com/abc-defg-hij")).toBe(false);
     expect(isGoogleMeetLink("https://meet.google.com.evil.test/abc-defg-hij")).toBe(false);
+    expect(isGoogleMeetLink("https://meet.google.com/not-a-code")).toBe(false);
+    expect(isGoogleMeetLink("https://meet.google.com/abc-defg-hij?redirect=1")).toBe(false);
     expect(isGoogleMeetLink("not a URL")).toBe(false);
   });
 });

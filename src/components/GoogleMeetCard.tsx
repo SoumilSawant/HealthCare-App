@@ -25,7 +25,7 @@ export function GoogleMeetCard({
   const meetingLink = session?.meeting_link;
   const isMeet = isGoogleMeetLink(meetingLink);
   const canJoin =
-    Boolean(meetingLink) &&
+    isMeet &&
     appointmentStatus === "Confirmed" &&
     ["Created", "Live"].includes(session?.session_status || "");
   const canCreate =
@@ -43,16 +43,22 @@ export function GoogleMeetCard({
         ? "This appointment was cancelled, so its meeting room is closed."
         : appointmentStatus === "Completed"
           ? "This consultation has ended and the join link is no longer active here."
-          : meetingLink
-            ? isMeet
-              ? "The private Google Meet room is ready. It opens in a new tab."
-              : "A video room is ready for this appointment. It opens in a new tab."
+            : meetingLink
+              ? isMeet
+                ? audience === "patient"
+                  ? "The private Google Meet room is ready. Google may ask you to sign in and wait for your doctor to admit you."
+                  : "The private Google Meet room is ready. Open it with the Google account that created the room."
+                : "The saved meeting link is invalid. For safety, SoulPlace will not open it."
             : audience === "doctor"
               ? "Create a private room with your Google account, then join when you’re ready."
               : "Your doctor hasn’t created the Meet room yet. Check again closer to your appointment.";
 
   return (
-    <section className="meet-card" aria-labelledby="meet-card-title">
+    <section
+      className="meet-card"
+      aria-labelledby="meet-card-title"
+      aria-busy={loading || creating ? "true" : undefined}
+    >
       <div className="meet-card-mark" aria-hidden="true">
         <Video />
       </div>
@@ -69,7 +75,7 @@ export function GoogleMeetCard({
         <p>{guidance}</p>
         <div className="meet-privacy-note">
           <ShieldCheck aria-hidden="true" />
-          <span>Only the meeting link is stored in SoulPlace. Clinical notes are not sent to Google.</span>
+          <span>SoulPlace stores the room reference, join link, and scheduled time. Clinical notes are not sent to Google.</span>
         </div>
         {errorMessage && (
           <p className="meet-error" role="alert">
@@ -82,7 +88,7 @@ export function GoogleMeetCard({
               className="button button-primary"
               href={meetingLink}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
             >
               <Video />
               {audience === "doctor" ? "Join Google Meet" : "Join consultation"}

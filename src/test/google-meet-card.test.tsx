@@ -26,7 +26,8 @@ describe("GoogleMeetCard", () => {
     const link = screen.getByRole("link", { name: /Join consultation/i });
     expect(link).toHaveAttribute("href", session.meeting_link);
     expect(link).toHaveAttribute("target", "_blank");
-    expect(link).toHaveAttribute("rel", "noreferrer");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(screen.getByText(/wait for your doctor to admit you/i)).toBeInTheDocument();
   });
 
   it("does not expose a join action before confirmation", () => {
@@ -81,5 +82,18 @@ describe("GoogleMeetCard", () => {
 
     expect(screen.queryByRole("link", { name: /Join/i })).not.toBeInTheDocument();
     expect(screen.getByText(/consultation has ended/i)).toBeInTheDocument();
+  });
+
+  it("refuses to open an invalid saved meeting link", () => {
+    render(
+      <GoogleMeetCard
+        audience="patient"
+        appointmentStatus="Confirmed"
+        session={{ ...session, meeting_link: "https://example.com/meeting" }}
+      />
+    );
+
+    expect(screen.queryByRole("link", { name: /Join/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/will not open it/i)).toBeInTheDocument();
   });
 });

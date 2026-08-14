@@ -85,8 +85,9 @@ details. To enable creation outside demo mode:
 
 1. Enable the Google Meet REST API in a Google Cloud project.
 2. Configure an OAuth consent screen and create an OAuth 2.0 Web client.
-3. Add each deployed app origin (for example `http://localhost:8081`) to the
-   client's Authorized JavaScript origins.
+3. Use separate Google Cloud projects for development/staging and production.
+   Add each exact app origin (for example `http://localhost:8081`) to the
+   client's Authorized JavaScript origins; production origins must use HTTPS.
 4. Set `VITE_GOOGLE_CLIENT_ID` to that web client ID and restart/rebuild the app.
 5. Before public launch, publish verified homepage, privacy-policy, and terms
    URLs; move the OAuth consent screen from Testing to Production; add the final
@@ -95,7 +96,14 @@ details. To enable creation outside demo mode:
 
 The integration requests only the `meetings.space.created` scope when a doctor
 clicks **Create Google Meet**. The short-lived Google access token remains in
-browser memory; SoulPlace persists only the Meet space identifier and join URL.
+browser memory and is never persisted by SoulPlace. Rooms are created with
+restricted access and moderation enabled, so external patients may need to ask
+to join and be admitted by the doctor. SoulPlace persists the Meet space
+identifier, join URL, scheduled time, participants, and lifecycle status—not
+the Google token or clinical notes.
+
+The deployment and two-path manual acceptance procedure are documented in
+[`docs/google-meet-production.md`](docs/google-meet-production.md).
 
 ## Frontend-only demo mode
 
