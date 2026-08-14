@@ -34,6 +34,22 @@ interface PatientLoginResponse {
 
 export { normalizeIndianPhone } from "../validation";
 
+export interface RegisterDoctorParams {
+  fullName: string;
+  email: string;
+  mobileNumber: string;
+  password?: string;
+  specialization: string;
+  consultationFee: number;
+  avgConsultDurationMins: number;
+  specializationTags: string;
+  teleconsultEnabled: boolean;
+  professionalTermsConsent: boolean;
+  medicalRegistrationInfo: string;
+  verificationFileBase64?: string;
+  verificationFileName?: string;
+}
+
 export const authApi = {
   loginPatient(phoneOrEmail: string, password: string) {
     if (DEMO_MODE) {
@@ -197,6 +213,15 @@ export const authApi = {
     return callRpc<void>(
       "frappe.core.doctype.user.user.reset_password",
       { user: normalizeEmail(email) },
+      true
+    );
+  },
+  },
+
+  reapplyDoctor(input: { verificationFileBase64: string; verificationFileName: string }) {
+    return callRpc<{ success: boolean; message: string }>(
+      "soulplace.auth.reapply_doctor",
+      input,
       true
     );
   },

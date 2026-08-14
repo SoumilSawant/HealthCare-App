@@ -41,6 +41,7 @@ import { patientsApi } from "../api/patients";
 import { prescriptionsApi } from "../api/prescriptions";
 import { teleconsultApi } from "../api/teleconsult";
 import { GoogleMeetCard } from "../components/GoogleMeetCard";
+import { createRecord, listRecords, deleteRecord } from "../api/client";
 import {
   AppointmentCard,
   AppointmentTimeline,
@@ -966,6 +967,26 @@ export function ResourcesPage() {
     (!search || `${item.title} ${item.summary}`.toLowerCase().includes(search.toLowerCase())) &&
     (!category || item.category === category)
   );
+  
+  const savedResourcesQuery = useQuery({
+    queryKey: ["saved-resources", auth.patient?.name],
+    queryFn: () => listRecords<{name: string, resource_id: string}>("Saved Resource", { filters: [["patient", "=", auth.patient?.name || ""]], fields: ["name", "resource_id"], limitPageLength: 100 }),
+    enabled: Boolean(auth.patient?.name)
+  });
+  
+  const toggleSave = useMutation({
+    mutationFn: async (resourceId: string) => {
+      const savedList = savedResourcesQuery.data?.data || [];
+      const existing = savedList.find(r => r.resource_id === resourceId);
+      if (existing) {
+        await deleteRecord("Saved Resource", existing.name);
+      } else {
+        await createRecord("Saved Resource", { patient: auth.patient?.name, resource_id: resourceId });
+      }
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["saved-resources"] }); }
+  });
+
   return (
     <>
       <PageHeader eyebrow="Wellness library" title="Support for everyday moments" description="Short, accessible practices you can return to at your own pace." />
@@ -974,15 +995,14 @@ export function ResourcesPage() {
           <option value="">All categories</option>{categories.map((item) => <option key={item}>{item}</option>)}
         </SelectField>
       </SearchFilterBar>
-      <IntegrationNotice title="Editorial content">
-        No Resource DocType or saved-resource endpoint exists in the audited backend. These wellness guides are packaged editorial content; saving is intentionally disabled.
-      </IntegrationNotice>
-      {rows.length ? <div className="resource-grid">{rows.map((item) => (
+      {rows.length ? <div className="resource-grid">{rows.map((item) => {
+        const isSaved = (savedResourcesQuery.data?.data || []).some(r => r.resource_id === item.id);
+        return (
         <article className="resource-card" key={item.id}>
           <div className={`resource-art art-${item.category.toLowerCase()}`}><span>{item.format === "Video" ? <PlayCircle /> : <BookOpen />}</span></div>
-          <div><p className="eyebrow">{item.category} · {item.duration}</p><h2>{item.title}</h2><p>{item.summary}</p><div className="card-actions"><Link className="text-link" to={`/patient/resources/${item.id}`}>Open resource <ArrowRight /></Link><Button variant="ghost" disabled aria-label="Save resource unavailable"><Save /> Save</Button></div></div>
+          <div><p className="eyebrow">{item.category} · {item.duration}</p><h2>{item.title}</h2><p>{item.summary}</p><div className="card-actions"><Link className="text-link" to={`/patient/resources/${item.id}`}>Open resource <ArrowRight /></Link><Button variant={isSaved ? "secondary" : "ghost"} disabled={toggleSave.isPending} onClick={() => toggleSave.mutate(item.id)}><Save /> {isSaved ? "Saved" : "Save"}</Button></div></div>
         </article>
-      ))}</div> : <EmptyState title="No resources found" description="Try a different keyword or category." />}
+      )})}</div> : <EmptyState title="No resources found" description="Try a different keyword or category." />}
     </>
   );
 }

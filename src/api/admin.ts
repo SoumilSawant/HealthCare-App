@@ -90,6 +90,12 @@ export const adminApi = {
     if (DEMO_MODE) return Promise.resolve({ name, approval_status: "Rejected", status: "Inactive", rejection_reason: reason } as Doctor);
     return callRpc<Doctor>("soulplace.api.review_doctor", { name, decision: "Rejected", reason });
   },
+  deleteDoctor(name: string) {
+    return callRpc<{ success: boolean }>("soulplace.api.admin_delete_doctor", { doctor_name: name });
+  },
+  deletePatient(name: string) {
+    return callRpc<{ success: boolean }>("soulplace.api.admin_delete_patient", { patient_name: name });
+  },
   patients() {
     return listRecords<PatientUser>("PatientUser", {
       fields: ["*"],

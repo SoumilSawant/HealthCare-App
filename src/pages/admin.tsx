@@ -1,6 +1,6 @@
 import { lazy, Suspense, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   CalendarDays,
@@ -170,6 +170,19 @@ function AdminTablePage<T extends { name: string }>({
 
 export function AdminPatientsPage() {
   const [selected, setSelected] = useState<PatientUser>();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
+  const deletePat = useMutation({
+    mutationFn: () => adminApi.deletePatient(selected?.name || ""),
+    onSuccess: () => {
+      toast.notify("Patient deleted.");
+      setSelected(undefined);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "patients"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+    }
+  });
+
   const columns: Column<PatientUser>[] = [
     { key: "name", header: "Patient", render: (row) => <span><strong>{row.name1}</strong><small className="table-subtext">{row.name}</small></span> },
     { key: "phone", header: "Phone", render: (row) => row.phoneno },
@@ -177,29 +190,43 @@ export function AdminPatientsPage() {
     { key: "language", header: "Language", render: (row) => row.preferred_language || "—" },
     { key: "consent", header: "Consent record", render: (row) => <StatusBadge status={row.consent_status || "Not recorded"} /> }
   ];
-  return <><AdminTablePage eyebrow="People" title="Patients" description="Patients are active immediately after registration. There is no patient approval workflow." queryKey="patients" queryFn={adminApi.patients} columns={columns} searchText={(row) => `${row.name1} ${row.phoneno} ${row.name}`} onRowClick={setSelected} /><Drawer open={Boolean(selected)} title="Patient details" onClose={() => setSelected(undefined)}>{selected && <dl className="detail-list drawer-details"><div><dt>Name</dt><dd>{selected.name1}</dd></div><div><dt>Phone</dt><dd>{selected.phoneno}</dd></div><div><dt>Age / gender</dt><dd>{selected.age} · {selected.gender}</dd></div><div><dt>Account</dt><dd>Active · no approval required</dd></div><div><dt>App user</dt><dd>{selected.app_user || "Not linked"}</dd></div><div><dt>Emergency contact</dt><dd>{selected.emergency_contact_name || "Not set"} {selected.emergency_contact_phone || ""}</dd></div><div><dt>Consent record</dt><dd><StatusBadge status={selected.consent_status || "Not recorded"} /></dd></div></dl>}</Drawer></>;
+  return <><AdminTablePage eyebrow="People" title="Patients" description="Patients are active immediately after registration. There is no patient approval workflow." queryKey="patients" queryFn={adminApi.patients} columns={columns} searchText={(row) => `${row.name1} ${row.phoneno} ${row.name}`} onRowClick={setSelected} /><Drawer open={Boolean(selected)} title="Patient details" onClose={() => setSelected(undefined)}>{selected && <div className="drawer-content"><dl className="detail-list drawer-details"><div><dt>Name</dt><dd>{selected.name1}</dd></div><div><dt>Phone</dt><dd>{selected.phoneno}</dd></div><div><dt>Age / gender</dt><dd>{selected.age} · {selected.gender}</dd></div><div><dt>Account</dt><dd>Active · no approval required</dd></div><div><dt>App user</dt><dd>{selected.app_user || "Not linked"}</dd></div><div><dt>Emergency contact</dt><dd>{selected.emergency_contact_name || "Not set"} {selected.emergency_contact_phone || ""}</dd></div><div><dt>Consent record</dt><dd><StatusBadge status={selected.consent_status || "Not recorded"} /></dd></div></dl><div style={{ marginTop: "var(--space-8)" }}><Button variant="danger" disabled={deletePat.isPending} onClick={() => { if(confirm("Are you sure you want to delete this patient? This action cannot be undone.")) deletePat.mutate(); }}>{deletePat.isPending ? "Deleting..." : "Delete patient"}</Button></div></div>}</Drawer></>;
 }
 
 export function AdminDoctorsPage() {
-  const [params] = useSearchParams();
-  const requestedStatus = params.get("status") || "";
-  const initialStatus = ["Pending", "Approved", "Rejected"].includes(requestedStatus)
-    ? requestedStatus
-    : "";
+  const [searchParams] = useSearchParams();
+  const initialStatus = searchParams.get("status");
   const [selected, setSelected] = useState<Doctor>();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
+  const deleteDoc = useMutation({
+    mutationFn: () => adminApi.deleteDoctor(selected?.name || ""),
+    onSuccess: () => {
+      toast.notify("Doctor deleted.");
+      setSelected(undefined);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "doctors"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+    },
+    onError: (e) => {
+      toast.error("Failed to delete doctor");
+    }
+  });
+
   const columns: Column<Doctor>[] = [
-    { key: "doctor", header: "Doctor", render: (row) => <span><strong>{row.full_name}</strong><small className="table-subtext">{row.email}</small></span> },
-    { key: "specialty", header: "Specialty", render: (row) => row.specialty },
+    { key: "name", header: "Doctor", render: (row) => <span><strong>{row.full_name}</strong><small className="table-subtext">{row.specialty}</small></span> },
+    { key: "email", header: "Email / Mobile", render: (row) => <span>{row.email}<small className="table-subtext">{row.mobile_number}</small></span> },
     { key: "fee", header: "Fee", render: (row) => `₹${Number(row.consultation_fee || 0).toLocaleString()}` },
     { key: "availability", header: "Availability", render: (row) => <StatusBadge status={row.status} /> },
     { key: "approval", header: "Approval", render: (row) => <StatusBadge status={row.approval_status} /> },
     { key: "action", header: "", render: (row) => <Link className="text-link" to={`/admin/doctors/${row.name}`}>Review <ArrowRight /></Link> }
   ];
-  return <><AdminTablePage eyebrow="Care network" title="Doctors" description={`Review professional profiles and approvals${initialStatus ? ` · ${initialStatus}` : ""}.`} queryKey="doctors" queryFn={adminApi.doctors} columns={columns} searchText={(row) => `${row.full_name} ${row.email} ${row.specialty} ${row.specialization_tags}`} statusKey="approval_status" statuses={["Pending", "Approved", "Rejected"]} initialStatus={initialStatus} onRowClick={setSelected} /><Drawer open={Boolean(selected)} title="Doctor preview" onClose={() => setSelected(undefined)}>{selected && <div className="drawer-profile"><span className="avatar avatar-profile">{selected.full_name.charAt(0)}</span><h2>{selected.full_name}</h2><p>{selected.specialty}</p><StatusBadge status={selected.approval_status} /><Link className="button button-primary" to={`/admin/doctors/${selected.name}`}>Open full review</Link></div>}</Drawer></>;
+  return <><AdminTablePage eyebrow="Care network" title="Doctors" description={`Review professional profiles and approvals${initialStatus ? ` · ${initialStatus}` : ""}.`} queryKey="doctors" queryFn={adminApi.doctors} columns={columns} searchText={(row) => `${row.full_name} ${row.email} ${row.specialty} ${row.specialization_tags}`} statusKey="approval_status" statuses={["Pending", "Approved", "Rejected"]} initialStatus={initialStatus || ""} onRowClick={setSelected} /><Drawer open={Boolean(selected)} title="Doctor preview" onClose={() => setSelected(undefined)}>{selected && <div className="drawer-profile"><span className="avatar avatar-profile">{selected.full_name.charAt(0)}</span><h2>{selected.full_name}</h2><p>{selected.specialty}</p><StatusBadge status={selected.approval_status} /><div style={{ display: "flex", gap: "var(--space-4)", marginTop: "var(--space-6)" }}><Link className="button button-primary" style={{ flex: 1 }} to={`/admin/doctors/${selected.name}`}>Open full review</Link><Button variant="danger" disabled={deleteDoc.isPending} onClick={() => { if(confirm("Are you sure you want to delete this doctor? This action cannot be undone.")) deleteDoc.mutate(); }}>Delete</Button></div></div>}</Drawer></>;
 }
 
 export function AdminDoctorDetailPage() {
   const { doctorId } = useParams();
+  const navigate = useNavigate();
   const toast = useToast();
   const queryClient = useQueryClient();
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -234,7 +261,7 @@ export function AdminDoctorDetailPage() {
           </div>
         </aside>
       </div>
-      <ConfirmDialog open={rejectOpen} title="Reject this doctor?" description="The reason is stored with the reviewer and review time, and shown to the doctor." confirmLabel="Reject doctor" destructive busy={reject.isPending} confirmDisabled={!reason.trim()} onCancel={() => setRejectOpen(false)} onConfirm={() => reject.mutate()}>
+  <ConfirmDialog open={rejectOpen} title="Reject this doctor?" description="The reason is stored with the reviewer and review time, and shown to the doctor." confirmLabel="Reject doctor" destructive busy={reject.isPending} confirmDisabled={!reason.trim()} onCancel={() => setRejectOpen(false)} onConfirm={() => reject.mutate()}>
         <TextAreaField label="Rejection reason" value={reason} onChange={(event) => setReason(event.target.value)} required />
       </ConfirmDialog>
     </>

@@ -503,7 +503,7 @@ export function ConsultationWorkspacePage() {
     <>
       <Breadcrumbs items={[{ label: "Consultations", to: "/doctor/consultations" }, { label: isNew ? "New consultation" : consultationId || "" }]} />
       <PageHeader eyebrow="Clinical note" title={isNew ? "New consultation" : "Consultation workspace"} description="Record clinical details and a separate patient-friendly summary." />
-      {!current.appointment && <IntegrationNotice title="Appointment required">Open this workspace from an appointment so the Consultation.appointment link is set.</IntegrationNotice>}
+      {!current.appointment && <div className="notice warning"><p><strong>Appointment required:</strong> Open this workspace from an appointment so the Consultation is correctly linked.</p></div>}
       <ConsultationEditor value={current} onChange={setForm} onSave={() => save.mutate()} busy={save.isPending} />
       {save.isError && <ErrorState error={save.error} />}
       {!isNew && <section className="panel prescription-section"><div className="panel-header"><div><p className="eyebrow">Medication</p><h2>Prescriptions</h2></div></div>
@@ -550,6 +550,7 @@ export function DoctorProfilePage() {
           <FormField label="Specialty" value={form.specialty || ""} onChange={(event) => setForm((current) => ({ ...current, specialty: event.target.value }))} />
           <TextAreaField label="Specialization tags" value={form.specialization_tags || ""} onChange={(event) => setForm((current) => ({ ...current, specialization_tags: event.target.value }))} />
           <div className="form-grid two-column"><FormField label="Consultation fee" type="number" value={form.consultation_fee || ""} onChange={(event) => setForm((current) => ({ ...current, consultation_fee: Number(event.target.value) }))} /><FormField label="Average duration" type="number" value={form.avg_consult_duration_mins || ""} onChange={(event) => setForm((current) => ({ ...current, avg_consult_duration_mins: Number(event.target.value) }))} /></div>
+          <label className="toggle-field" style={{marginTop: "var(--space-2)", marginBottom: "var(--space-4)"}}><input type="checkbox" checked={form.teleconsult_enabled === 1} onChange={(event) => setForm((current) => ({ ...current, teleconsult_enabled: event.target.checked ? 1 : 0 }))} /><span /> Enable teleconsultations</label>
           {mutation.isError && <ErrorState error={mutation.error} />}
           <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? "Saving…" : "Save profile"}</Button>
         </form></section>
@@ -565,7 +566,7 @@ export function DoctorSettingsPage() {
       <PageHeader eyebrow="Workspace preferences" title="Settings" description="Review account access and clinical configuration." />
       <div className="settings-list">
         <section className="panel"><h2>Account access</h2><div className="setting-row"><span><strong>Approval status</strong><small>Controlled by an administrator.</small></span><StatusBadge status={auth.doctor?.approval_status} /></div><div className="setting-row"><span><strong>Authentication</strong><small>Secure Frappe session cookie.</small></span><CheckCircle2 /></div></section>
-        <section className="panel"><h2>Clinical safeguards</h2><div className="setting-row"><span><strong>Record access</strong><small>Limited server-side to your assigned appointments and clinical records.</small></span><CheckCircle2 /></div></section>
+  <section className="panel"><h2>Clinical safeguards</h2><div className="setting-row"><span><strong>Record access</strong><small>Limited server-side to your assigned appointments and clinical records.</small></span><CheckCircle2 /></div></section>
       </div>
     </>
   );
