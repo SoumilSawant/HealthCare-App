@@ -537,6 +537,7 @@ export function DoctorRegisterPage() {
         consent_version: import.meta.env.VITE_CONSENT_VERSION || "1.0",
         verification
       });
+      });
       await auth.restore();
       toast.notify("Application submitted for review.");
       navigate("/doctor/pending", { replace: true });
@@ -606,8 +607,8 @@ export function DoctorRegisterPage() {
             information supplied is accurate and agree to clinical standards.
           </span>
         </label>
-        {error && <p className="form-alert" role="alert">{error}</p>}
-        <Button type="submit" disabled={busy || !verification || !form.professional_consent}>
+  {error && <p className="form-alert" role="alert">{error}</p>}
+  <Button type="submit" disabled={busy || !verification || !form.professional_consent}>
           {busy ? "Submitting application…" : "Submit application"}
         </Button>
       </form>
@@ -622,8 +623,9 @@ export function DoctorPendingPage() {
   const auth = useAuth();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
+  const [reapplyFile, setReapplyFile] = useState<File | null>(null);
   const status = auth.doctor?.approval_status ?? "Pending";
-
+  const toast = useToast();
   if (auth.status === "anonymous") return <Navigate to="/doctor/login" replace />;
   if (status === "Approved") return <Navigate to="/doctor/dashboard" replace />;
 
@@ -633,6 +635,38 @@ export function DoctorPendingPage() {
     setBusy(false);
     if (session.doctor?.approval_status === "Approved") {
       navigate("/doctor/dashboard", { replace: true });
+    }
+  };
+
+  const handleReapply = async () => {
+    if (!reapplyFile) return;
+    setBusy(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64 = reader.result as string;
+          await authApi.reapplyDoctor({
+            verificationFileBase64: base64,
+            verificationFileName: reapplyFile.name
+          });
+          toast.notify("Re-application submitted successfully.");
+          setReapplyFile(null);
+          await auth.restore();
+        } catch (e) {
+          toast.error("Failed to submit re-application", normalizeApiError(e));
+        } finally {
+          setBusy(false);
+        }
+      };
+      reader.onerror = () => {
+        toast.error("Failed to read the file");
+        setBusy(false);
+      };
+      reader.readAsDataURL(reapplyFile);
+    } catch (e) {
+      toast.error("Failed to process file", normalizeApiError(e));
+      setBusy(false);
     }
   };
 
@@ -676,12 +710,34 @@ export function DoctorPendingPage() {
           />
         </div>
       </div>
-      <Button onClick={() => void refresh()} disabled={busy} icon={<RefreshCw />}>
-        {busy ? "Refreshing…" : "Refresh approval status"}
-      </Button>
-      <Button variant="ghost" onClick={() => void auth.logout()}>
-        Sign out
-      </Button>
+      {status === "Rejected" && (
+        <div style={{ marginTop: "var(--space-6)", padding: "var(--space-6)", backgroundColor: "var(--surface-sunken)", borderRadius: "var(--radius-xl)" }}>
+          <h3 style={{ fontSize: "var(--text-sm)", marginBottom: "var(--space-4)" }}>Submit new verification document</h3>
+          <FileUpload
+            label="Verification proof (PDF or Image)"
+            value={reapplyFile}
+            onChange={setReapplyFile}
+            accept=".pdf,.jpg,.jpeg,.png"
+            required
+          />
+          <Button 
+            className="w-full" 
+            style={{ marginTop: "var(--space-4)" }}
+            disabled={!reapplyFile || busy} 
+            onClick={() => void handleReapply()}
+          >
+            {busy ? "Submitting..." : "Submit re-application"}
+          </Button>
+        </div>
+      )}
+      <div style={{ display: "flex", gap: "var(--space-4)", marginTop: "var(--space-6)" }}>
+        <Button onClick={() => void refresh()} disabled={busy} icon={<RefreshCw />} style={{ flex: 1 }}>
+          {busy ? "Refreshing…" : "Refresh approval status"}
+        </Button>
+        <Button variant="ghost" onClick={() => void auth.logout()}>
+          Sign out
+        </Button>
+      </div>
     </AuthFrame>
   );
 }

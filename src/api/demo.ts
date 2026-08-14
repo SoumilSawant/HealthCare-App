@@ -404,7 +404,7 @@ export function demoCreateRecord<T extends FrappeDocument>(
   } as T;
   collection.push(record);
 
-  if (doctype === "Appointment") {
+  if (doctype === "Patient Appointment") {
     const appointment = record as unknown as Appointment;
     const auditEvent: AppointmentAuditTimeline = {
       name: `AUD-DEMO-${String(records["Appointment Audit Timeline"].length + 1).padStart(3, "0")}`,

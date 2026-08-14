@@ -31,6 +31,16 @@ export default defineConfig(({ mode }) => {
           target,
           changeOrigin: true,
           secure: false
+        },
+        "/files": {
+          target,
+          changeOrigin: true,
+          secure: false
+        },
+        "/private": {
+          target,
+          changeOrigin: true,
+          secure: false
         }
       }
     },

@@ -35,7 +35,7 @@ export const adminApi = {
         fields: ["name", "approval_status"],
         limitPageLength: 1000
       }),
-      listRecords<Appointment>("Appointment", {
+      listRecords<Appointment>("Patient Appointment", {
         fields: ["name", "appointment_date", "status"],
         limitPageLength: 1000
       }),
@@ -90,6 +90,12 @@ export const adminApi = {
     if (DEMO_MODE) return Promise.resolve({ name, approval_status: "Rejected", status: "Inactive", rejection_reason: reason } as Doctor);
     return callRpc<Doctor>("soulplace.api.review_doctor", { name, decision: "Rejected", reason });
   },
+  deleteDoctor(name: string) {
+    return callRpc<{ success: boolean }>("soulplace.api.admin_delete_doctor", { doctor_name: name });
+  },
+  deletePatient(name: string) {
+    return callRpc<{ success: boolean }>("soulplace.api.admin_delete_patient", { patient_name: name });
+  },
   patients() {
     return listRecords<PatientUser>("PatientUser", {
       fields: ["*"],
@@ -103,7 +109,7 @@ export const adminApi = {
     });
   },
   appointments() {
-    return listRecords<Appointment>("Appointment", {
+    return listRecords<Appointment>("Patient Appointment", {
       fields: ["*"],
       limitPageLength: 100
     });
