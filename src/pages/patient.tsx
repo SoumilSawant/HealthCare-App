@@ -54,7 +54,6 @@ import {
   EmptyState,
   ErrorState,
   FormField,
-  IntegrationNotice,
   LoadingSkeleton,
   PageHeader,
   SearchFilterBar,
@@ -960,6 +959,8 @@ const wellnessResources = [
 ];
 
 export function ResourcesPage() {
+  const auth = useAuth();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const categories = Array.from(new Set(wellnessResources.map((item) => item.category)));

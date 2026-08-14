@@ -1,6 +1,6 @@
 import { lazy, Suspense, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
   CalendarDays,
@@ -208,8 +208,8 @@ export function AdminDoctorsPage() {
       void queryClient.invalidateQueries({ queryKey: ["admin", "doctors"] });
       void queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
     },
-    onError: (e) => {
-      toast.error("Failed to delete doctor");
+    onError: () => {
+      toast.notify("Failed to delete doctor", "error");
     }
   });
 
@@ -226,7 +226,6 @@ export function AdminDoctorsPage() {
 
 export function AdminDoctorDetailPage() {
   const { doctorId } = useParams();
-  const navigate = useNavigate();
   const toast = useToast();
   const queryClient = useQueryClient();
   const [rejectOpen, setRejectOpen] = useState(false);

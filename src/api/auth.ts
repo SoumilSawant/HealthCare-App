@@ -216,7 +216,6 @@ export const authApi = {
       true
     );
   },
-  },
 
   reapplyDoctor(input: { verificationFileBase64: string; verificationFileName: string }) {
     return callRpc<{ success: boolean; message: string }>(

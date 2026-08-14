@@ -534,11 +534,10 @@ export function DoctorRegisterPage() {
         ...form,
         consultation_fee: Number(form.consultation_fee),
         avg_consult_duration_mins: Number(form.avg_consult_duration_mins),
-        consent_version: import.meta.env.VITE_CONSENT_VERSION || "1.0",
-        verification
-      });
-      });
-      await auth.restore();
+      consent_version: import.meta.env.VITE_CONSENT_VERSION || "1.0",
+      verification
+    });
+    await auth.restore();
       toast.notify("Application submitted for review.");
       navigate("/doctor/pending", { replace: true });
     } catch (unknownError) {
@@ -654,18 +653,18 @@ export function DoctorPendingPage() {
           setReapplyFile(null);
           await auth.restore();
         } catch (e) {
-          toast.error("Failed to submit re-application", normalizeApiError(e));
+          toast.notify(`Failed to submit re-application: ${normalizeApiError(e).message}`, "error");
         } finally {
           setBusy(false);
         }
       };
       reader.onerror = () => {
-        toast.error("Failed to read the file");
+        toast.notify("Failed to read the file", "error");
         setBusy(false);
       };
       reader.readAsDataURL(reapplyFile);
     } catch (e) {
-      toast.error("Failed to process file", normalizeApiError(e));
+      toast.notify(`Failed to process file: ${normalizeApiError(e).message}`, "error");
       setBusy(false);
     }
   };
@@ -715,10 +714,9 @@ export function DoctorPendingPage() {
           <h3 style={{ fontSize: "var(--text-sm)", marginBottom: "var(--space-4)" }}>Submit new verification document</h3>
           <FileUpload
             label="Verification proof (PDF or Image)"
-            value={reapplyFile}
-            onChange={setReapplyFile}
-            accept=".pdf,.jpg,.jpeg,.png"
-            required
+            value={reapplyFile?.name}
+            onFile={setReapplyFile}
+            accept=".pdf,image/png,image/jpeg"
           />
           <Button 
             className="w-full" 

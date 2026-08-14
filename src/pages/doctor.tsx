@@ -32,7 +32,6 @@ import {
   EmptyState,
   ErrorState,
   FormField,
-  IntegrationNotice,
   LoadingSkeleton,
   PageHeader,
   PrescriptionForm,
