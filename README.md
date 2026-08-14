@@ -89,18 +89,39 @@ details. To enable creation outside demo mode:
    Add each exact app origin (for example `http://localhost:8081`) to the
    client's Authorized JavaScript origins; production origins must use HTTPS.
 4. Set `VITE_GOOGLE_CLIENT_ID` to that web client ID and restart/rebuild the app.
-5. Before public launch, publish verified homepage, privacy-policy, and terms
+   `.env.local` is intentionally ignored by Git, so every developer must set
+   this value on their own machine.
+5. While the consent screen is in **Testing**, add each developer's Google
+   account under **Google Auth Platform → Audience → Test users**. An account
+   that is not listed cannot complete the local OAuth flow.
+6. Before public launch, publish verified homepage, privacy-policy, and terms
    URLs; move the OAuth consent screen from Testing to Production; add the final
    HTTPS origin; and complete Google verification if requested for the
    `meetings.space.created` scope.
 
 The integration requests only the `meetings.space.created` scope when a doctor
 clicks **Create Google Meet**. The short-lived Google access token remains in
-browser memory and is never persisted by SoulPlace. Rooms are created with
-restricted access and moderation enabled, so external patients may need to ask
-to join and be admitted by the doctor. SoulPlace persists the Meet space
-identifier, join URL, scheduled time, participants, and lifecycle status—not
-the Google token or clinical notes.
+browser memory and is never persisted by SoulPlace. Rooms use the Google
+account's access and moderation defaults. Consumer Google accounts default to
+restricted access; Google Workspace deployments must enforce the clinic's
+required access policy through their Workspace administrator. External patients
+may need to ask to join and be admitted by the doctor. SoulPlace persists the
+Meet space identifier, join URL, scheduled time, participants, and lifecycle
+status—not the Google token or clinical notes.
+
+To reproduce real Meet creation on another development machine:
+
+1. Check out matching frontend and Soulplace backend revisions, then install
+   dependencies and run the backend migrations.
+2. Copy `.env.example` to `.env.local`, keep `VITE_DEMO_MODE=false`, set
+   `FRAPPE_PROXY_TARGET` to that machine's Frappe site, and set the OAuth Web
+   client ID in `VITE_GOOGLE_CLIENT_ID`.
+3. Run the frontend on an origin already listed in the OAuth client's
+   Authorized JavaScript origins, such as `http://localhost:8081`.
+4. Add the developer's Google account as an OAuth test user while the app is in
+   Testing.
+5. Create linked patient and approved doctor users in that local Frappe site,
+   then create and confirm a teleconsult appointment before testing Meet.
 
 The deployment and two-path manual acceptance procedure are documented in
 [`docs/google-meet-production.md`](docs/google-meet-production.md).

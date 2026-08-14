@@ -30,9 +30,7 @@ describe("Google Meet API", () => {
         headers: expect.objectContaining({
           Authorization: "Bearer short-lived-token"
         }),
-        body: JSON.stringify({
-          config: { accessType: "RESTRICTED", moderation: "ON" }
-        })
+        body: JSON.stringify({})
       })
     );
   });
@@ -60,6 +58,21 @@ describe("Google Meet API", () => {
 
     await expect(createGoogleMeetSpaceWithToken("token")).rejects.toThrow(
       /rate-limited/i
+    );
+  });
+
+  it("does not expose Google account-policy implementation errors", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          error: { message: "updateAccessType is not available to the user." }
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      )
+    );
+
+    await expect(createGoogleMeetSpaceWithToken("token")).rejects.toThrow(
+      /cannot override its Meet access policy/i
     );
   });
 

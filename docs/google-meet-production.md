@@ -10,8 +10,11 @@ Last updated: 2026-08-14
   are idempotent; attempts to replace a saved room are rejected.
 - Meet URLs and space identifiers are validated independently in the browser
   and in Frappe. SoulPlace opens only canonical HTTPS `meet.google.com` links.
-- New rooms request restricted access with moderation enabled. Patients outside
-  the host's organization may need to ask to join and be admitted by the doctor.
+- New rooms use the Google account's access and moderation defaults. Consumer
+  Google accounts default to restricted access; Google Workspace deployments
+  must enforce the required access policy through their Workspace administrator.
+  Patients outside the host's organization may need to ask to join and be
+  admitted by the doctor.
 - Rescheduling updates session times; completing or cancelling the appointment
   updates the teleconsult lifecycle and removes the join action.
 - Google access tokens remain in browser memory for the creation request. They
@@ -33,6 +36,7 @@ Last updated: 2026-08-14
 6. Click **Create Google Meet**, choose the intended host Google account, and
    grant only the meeting-space creation permission. Confirm one room appears
    and that repeated clicks or refreshes do not create a second stored room.
+   Confirm the resulting room uses the access policy required by your clinic.
 7. Open the room as the doctor. In a separate browser profile, sign in as the
    patient, open the same appointment, click **Join consultation**, request
    entry, and confirm the doctor can admit the patient.

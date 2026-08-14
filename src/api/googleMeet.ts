@@ -198,12 +198,11 @@ export async function createGoogleMeetSpaceWithToken(accessToken: string) {
         "Content-Type": "application/json"
       },
       signal: controller.signal,
-      body: JSON.stringify({
-        config: {
-          accessType: "RESTRICTED",
-          moderation: "ON"
-        }
-      })
+      // Consumer Google accounts cannot update accessType or moderation while
+      // creating a space. An empty Space request lets Google apply the
+      // account's default: RESTRICTED for consumer accounts, or the policy
+      // selected by a Google Workspace administrator.
+      body: JSON.stringify({})
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
@@ -232,7 +231,13 @@ export async function createGoogleMeetSpaceWithToken(accessToken: string) {
             : response.status >= 500
               ? "Google Meet is temporarily unavailable. Please try again."
               : "Google Meet could not create the meeting. Confirm the Meet API is enabled and try again.";
-    throw new Error(payload?.error?.message || fallback);
+    const googleMessage = payload?.error?.message || "";
+    const accountPolicyMessage = /updateAccessType|updateModeration/i.test(
+      googleMessage
+    )
+      ? "This Google account cannot override its Meet access policy. SoulPlace will use the account default instead. Please try again."
+      : undefined;
+    throw new Error(accountPolicyMessage || googleMessage || fallback);
   }
 
   const space = (await response.json()) as Partial<GoogleMeetSpace>;
