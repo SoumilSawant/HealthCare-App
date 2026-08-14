@@ -37,3 +37,34 @@ test("administrator can open doctor approvals", async ({ page }) => {
   await openWorkspaceLink(page, "Doctor approvals");
   await expect(page.getByRole("heading", { name: "Doctors" })).toBeVisible();
 });
+
+test("approved doctor can create and open a Meet room", async ({ page }) => {
+  await page.goto("/doctor/login");
+  await page.getByLabel("Professional email").fill("doctor@soulplace.demo");
+  await page.getByLabel("Password", { exact: true }).fill("Demo1234!");
+  await page.getByRole("button", { name: /sign in securely/i }).click();
+  await page.goto("/doctor/appointments/APT-DEMO-001");
+
+  await page.getByRole("button", { name: "Create Google Meet" }).click();
+  const joinLink = page.getByRole("link", { name: /Join Google Meet/i });
+  await expect(joinLink).toBeVisible();
+  await expect(joinLink).toHaveAttribute(
+    "href",
+    "https://meet.google.com/abc-defg-hij"
+  );
+});
+
+test("patient can access only the saved canonical Meet room", async ({ page }) => {
+  await page.goto("/patient/login");
+  await page.getByLabel("Phone number").fill("9000000001");
+  await page.getByLabel("Password", { exact: true }).fill("Demo1234!");
+  await page.getByRole("button", { name: /sign in securely/i }).click();
+  await page.goto("/patient/appointments/APT-DEMO-005");
+
+  const joinLink = page.getByRole("link", { name: /Join consultation/i });
+  await expect(joinLink).toBeVisible();
+  await expect(joinLink).toHaveAttribute(
+    "href",
+    "https://meet.google.com/abc-defg-hij"
+  );
+});

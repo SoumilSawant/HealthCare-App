@@ -7,6 +7,7 @@ import {
 } from "./client";
 import { DEMO_MODE } from "./demo";
 import type { ListOptions, Prescription } from "../types/domain";
+import { validatePrescription } from "../validation";
 
 export const prescriptionsApi = {
   list(options?: ListOptions<Prescription>) {
@@ -19,11 +20,13 @@ export const prescriptionsApi = {
     return getRecord<Prescription>("Prescription", name);
   },
   create(values: Omit<Partial<Prescription>, "name">) {
-    if (DEMO_MODE) return createRecord<Prescription>("Prescription", values);
-    return callRpc<Prescription>("soulplace.api.save_prescription", { values });
+    const validated = validatePrescription(values as Record<string, unknown>) as Partial<Prescription>;
+    if (DEMO_MODE) return createRecord<Prescription>("Prescription", validated);
+    return callRpc<Prescription>("soulplace.api.save_prescription", { values: validated });
   },
   update(name: string, values: Partial<Prescription>) {
-    if (DEMO_MODE) return updateRecord<Prescription>("Prescription", name, values);
-    return callRpc<Prescription>("soulplace.api.save_prescription", { values: { ...values, name } });
+    const validated = validatePrescription({ ...values, name }) as Partial<Prescription>;
+    if (DEMO_MODE) return updateRecord<Prescription>("Prescription", name, validated);
+    return callRpc<Prescription>("soulplace.api.save_prescription", { values: validated });
   }
 };

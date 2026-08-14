@@ -1,6 +1,12 @@
 import { callRpc, clearSessionTokens, request } from "./client";
 import type { AuthSession } from "../types/domain";
 import {
+  normalizeEmail,
+  normalizeIndianPhone,
+  validateDoctorRegistration,
+  validatePatientRegistration
+} from "../validation";
+import {
   DEMO_MODE,
   demoLogin,
   demoLogout,
@@ -26,12 +32,7 @@ interface PatientLoginResponse {
   };
 }
 
-export function normalizeIndianPhone(value: string) {
-  const digits = value.replace(/\D/g, "");
-  return digits.length === 12 && digits.startsWith("91")
-    ? digits.slice(2)
-    : digits;
-}
+export { normalizeIndianPhone } from "../validation";
 
 export const authApi = {
   loginPatient(phoneOrEmail: string, password: string) {
@@ -52,10 +53,9 @@ export const authApi = {
           : undefined
       } satisfies PatientLoginResponse);
     }
-    const normalizedPhone = normalizeIndianPhone(phoneOrEmail);
     const usr = phoneOrEmail.includes("@")
-      ? phoneOrEmail
-      : `${normalizedPhone}@soulplace.local`;
+      ? normalizeEmail(phoneOrEmail)
+      : `${normalizeIndianPhone(phoneOrEmail)}@soulplace.local`;
     return callRpc<PatientLoginResponse>(
       "soulplace.auth.patient_login",
       { usr, pwd: password },
@@ -117,8 +117,9 @@ export const authApi = {
     consent_accepted: boolean;
     consent_version: string;
   }) {
+    const validated = validatePatientRegistration(input);
     if (DEMO_MODE) {
-      const patient = demoRegisterPatient(input);
+      const patient = demoRegisterPatient(validated);
       return Promise.resolve({
         success: true,
         user: {
@@ -136,7 +137,7 @@ export const authApi = {
     }
     return callRpc<PatientLoginResponse>(
       "soulplace.auth.register_patient",
-      input,
+      validated,
       true
     );
   },
@@ -156,8 +157,9 @@ export const authApi = {
     consent_version: string;
     verification: File;
   }) {
+    const validated = validateDoctorRegistration(input);
     const body = new FormData();
-    Object.entries(input).forEach(([key, value]) => {
+    Object.entries(validated).forEach(([key, value]) => {
       if (key === "verification") {
         body.append(key, value as File);
       } else {
@@ -194,7 +196,7 @@ export const authApi = {
   requestEmailPasswordReset(email: string) {
     return callRpc<void>(
       "frappe.core.doctype.user.user.reset_password",
-      { user: email.trim().toLowerCase() },
+      { user: normalizeEmail(email) },
       true
     );
   },

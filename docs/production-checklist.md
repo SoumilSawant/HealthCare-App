@@ -9,7 +9,8 @@
 - [ ] Configure Frappe allowed origins, secure/HTTP-only session cookies, CSRF, and trusted proxy headers.
 - [ ] Enable the Frappe password policy and configure malware scanning/quarantine for private doctor-verification uploads.
 - [ ] Configure SMS Settings and exercise OTP login and patient password reset on a real handset.
-- [ ] Add the final HTTPS origin to the Google OAuth Web client, publish the consent screen, and complete verification if Google requests it.
+- [ ] Configure a Default Outgoing Email Account, enable the scheduler, confirm at least one worker is online, and test doctor-request plus patient-confirmation/cancellation emails.
+- [ ] Use a dedicated production Google Cloud project; enable the Meet REST API; add only exact HTTPS origins to its OAuth Web client; publish the consent screen; and complete brand/scope verification if Google requires it.
 - [ ] Publish approved privacy, terms, telemedicine-consent, retention, deletion, and emergency-support policies.
 - [ ] Run patient-versus-patient, doctor-versus-doctor, and cross-portal denial tests in staging.
 - [ ] Configure encrypted database/private-file backups and perform a restore drill.
@@ -24,13 +25,14 @@
 - [ ] On Netlify-style hosts, replace the shipped `/api/*` 503 guard with a backend proxy rule before enabling live mode; cross-origin deployments may keep the guard and set `VITE_FRAPPE_URL` explicitly.
 - [ ] Verify CSP, HSTS, frame, referrer, permissions, MIME-sniffing, and cache headers with the deployed hostname.
 - [ ] Keep `index.html` uncached; cache fingerprinted `/assets/*` as immutable.
-- [ ] Verify the Google OAuth popup, Meet creation, doctor join, and patient join under the production CSP.
+- [ ] Follow `docs/google-meet-production.md` against staging: verify popup handling, restricted room creation, doctor join, patient knock/admission, malformed-link rejection, retry behavior, and lifecycle updates under the production CSP.
 - [ ] Leave payments disabled unless a reviewed server-owned gateway flow is live; SoulPlace must never collect raw card data.
 - [ ] Confirm `legacy/` and `docs/legacy-mobile/` are excluded from deployment artifacts.
 
 ## Clinical acceptance
 
 - [ ] Register one patient and one doctor from clean browser profiles.
+- [ ] Exercise invalid, boundary, duplicate, oversized-upload, unavailable-slot, and malformed-Meet-link cases against the deployed backend—not only browser validation.
 - [ ] Approve and reject test doctors; verify rejection reason visibility and pending access restrictions.
 - [ ] Book, overlap-check, confirm, reschedule, cancel, and complete appointments; inspect the audit timeline.
 - [ ] Save consultation notes and prescriptions; verify only the assigned doctor can read raw clinical notes, while the patient receives only the authored patient-friendly summary and their prescriptions.
