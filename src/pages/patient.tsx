@@ -33,6 +33,7 @@ import {
   WalletCards
 } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
+import { isPastAppointment, isUpcomingAppointment } from "../appointmentStatus";
 import { appointmentsApi } from "../api/appointments";
 import { consentsApi } from "../api/consents";
 import { consultationsApi } from "../api/consultations";
@@ -94,12 +95,10 @@ export function PatientDashboardPage() {
     enabled: Boolean(auth.patient?.name)
   });
   const now = new Date();
-  const upcoming = appointments.data?.data.find((appointment) => {
-    const date = new Date(
-      `${appointment.appointment_date}T${appointment.appointment_time || "00:00"}`
-    );
-    return date >= now && appointment.status !== "Cancelled";
-  });
+  const today = now.toISOString().slice(0, 10);
+  const upcoming = appointments.data?.data.find((appointment) =>
+    isUpcomingAppointment(appointment, today)
+  );
   const firstName = auth.patient?.name1?.split(" ")[0] || "there";
   const hour = now.getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
@@ -641,8 +640,8 @@ export function PatientAppointmentsPage() {
   const now = new Date().toISOString().slice(0, 10);
   const rows = (query.data?.data || []).filter((appointment) =>
     tab === "upcoming"
-      ? appointment.appointment_date >= now && appointment.status !== "Cancelled"
-      : appointment.appointment_date < now || ["Completed", "Cancelled"].includes(appointment.status)
+      ? isUpcomingAppointment(appointment, now)
+      : isPastAppointment(appointment, now)
   );
   return (
     <>

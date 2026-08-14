@@ -19,7 +19,7 @@ interface GoogleTokenResponse {
 }
 
 interface GoogleTokenClient {
-  requestAccessToken(options?: { prompt?: string }): void;
+  requestAccessToken(options?: { prompt?: string; login_hint?: string }): void;
 }
 
 interface GoogleOAuthError {
@@ -33,6 +33,7 @@ interface GoogleIdentityServices {
       initTokenClient(config: {
         client_id: string;
         scope: string;
+        login_hint?: string;
         callback(response: GoogleTokenResponse): void;
         error_callback?(error: GoogleOAuthError): void;
       }): GoogleTokenClient;
@@ -54,6 +55,10 @@ export interface GoogleMeetSpace {
   name: string;
   meetingUri: string;
   meetingCode?: string;
+}
+
+export interface CreateGoogleMeetOptions {
+  loginHint?: string;
 }
 
 let identityScriptPromise: Promise<void> | undefined;
@@ -109,7 +114,15 @@ function loadGoogleIdentityServices() {
   return identityScriptPromise;
 }
 
-async function requestGoogleAccessToken() {
+function normalizeLoginHint(value?: string) {
+  const hint = value?.trim();
+  if (!hint || hint.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(hint)) {
+    return undefined;
+  }
+  return hint;
+}
+
+async function requestGoogleAccessToken(loginHint?: string) {
   const configurationIssue = googleMeetConfigurationIssue();
   if (configurationIssue) throw new Error(configurationIssue);
 
@@ -139,9 +152,11 @@ async function requestGoogleAccessToken() {
         ),
       GOOGLE_OAUTH_TIMEOUT_MS
     );
+    const accountHint = normalizeLoginHint(loginHint);
     const client = oauth.initTokenClient({
       client_id: googleClientId!,
       scope: GOOGLE_MEET_CREATE_SCOPE,
+      ...(accountHint ? { login_hint: accountHint } : {}),
       callback(response) {
         if (response.access_token) {
           if (!oauth.hasGrantedAllScopes(response, GOOGLE_MEET_CREATE_SCOPE)) {
@@ -277,7 +292,7 @@ export function isGoogleMeetLink(value?: string) {
 
 export const googleMeetApi = {
   isConfigured: () => DEMO_MODE || !googleMeetConfigurationIssue(),
-  async createSpace(): Promise<GoogleMeetSpace> {
+  async createSpace(options: CreateGoogleMeetOptions = {}): Promise<GoogleMeetSpace> {
     if (DEMO_MODE) {
       return {
         name: `spaces/demo-${Date.now()}`,
@@ -285,7 +300,7 @@ export const googleMeetApi = {
         meetingUri: "https://meet.google.com/abc-defg-hij"
       };
     }
-    const accessToken = await requestGoogleAccessToken();
+    const accessToken = await requestGoogleAccessToken(options.loginHint);
     return createGoogleMeetSpaceWithToken(accessToken);
   }
 };

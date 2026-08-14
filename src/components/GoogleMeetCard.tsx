@@ -1,4 +1,4 @@
-import { ExternalLink, ShieldCheck, Video } from "lucide-react";
+import { CircleUserRound, ExternalLink, ShieldCheck, Video } from "lucide-react";
 import type { AppointmentStatus, TeleconsultSession } from "../types/domain";
 import { isGoogleMeetLink } from "../api/googleMeet";
 import { Button, StatusBadge } from "./ui";
@@ -10,6 +10,7 @@ export function GoogleMeetCard({
   loading,
   creating,
   configured = true,
+  doctorEmail,
   error,
   onCreate
 }: {
@@ -19,6 +20,7 @@ export function GoogleMeetCard({
   loading?: boolean;
   creating?: boolean;
   configured?: boolean;
+  doctorEmail?: string;
   error?: unknown;
   onCreate?: () => void;
 }) {
@@ -50,7 +52,7 @@ export function GoogleMeetCard({
                   : "The private Google Meet room is ready. Open it with the Google account that created the room."
                 : "The saved meeting link is invalid. For safety, SoulPlace will not open it."
             : audience === "doctor"
-              ? "Create a private room with your Google account, then join when you’re ready."
+              ? "Create a private room with a Google Account you or your clinic controls, then join when you’re ready."
               : "Your doctor hasn’t created the Meet room yet. Check again closer to your appointment.";
 
   return (
@@ -77,6 +79,28 @@ export function GoogleMeetCard({
           <ShieldCheck aria-hidden="true" />
           <span>SoulPlace stores the room reference, join link, and scheduled time. Clinical notes are not sent to Google.</span>
         </div>
+        {canCreate && (
+          <div className="meet-account-note">
+            <CircleUserRound aria-hidden="true" />
+            <span>
+              <strong>Use your professional identity.</strong>{" "}
+              {doctorEmail ? (
+                <>Google will suggest <b>{doctorEmail}</b>. </>
+              ) : null}
+              A Gmail address is not required—an existing work email can be used
+              to create a Google Account. The meeting is hosted only by the
+              account you choose, not by a SoulPlace administrator.{" "}
+              <a
+                href="https://accounts.google.com/signup"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Set up a Google Account
+                <ExternalLink aria-hidden="true" />
+              </a>
+            </span>
+          </div>
+        )}
         {errorMessage && (
           <p className="meet-error" role="alert">
             {errorMessage}

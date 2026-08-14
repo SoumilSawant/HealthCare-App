@@ -19,13 +19,19 @@ Last updated: 2026-08-14
   updates the teleconsult lifecycle and removes the join action.
 - Google access tokens remain in browser memory for the creation request. They
   are not sent to Frappe, logged, or stored by SoulPlace.
+- The signed-in doctor's professional email is used only as a Google account
+  hint. A Gmail mailbox is not required, and no SoulPlace administrator's
+  personal Google account is used to create or host the doctor's room.
 
 ## Option A: real Google Cloud acceptance
 
 1. Use a development or staging Google Cloud project—not the production
-   project—and enable the Google Meet REST API.
+   project—and enable the Google Meet REST API. The project must be owned and
+   administered by the SoulPlace organization rather than a developer's
+   personal Google account.
 2. Configure the OAuth consent screen. While it is in Testing, add the doctor's
-   Google account as a test user.
+   Google Account as a test user. Doctors without Gmail can create a Google
+   Account with their existing professional email and add that exact address.
 3. Create an OAuth 2.0 **Web application** client and add the exact frontend
    origin to **Authorized JavaScript origins**. Do not add paths, wildcards, or
    trailing slashes.
@@ -33,7 +39,8 @@ Last updated: 2026-08-14
    `VITE_DEMO_MODE=false`, and restart/rebuild the frontend.
 5. In SoulPlace, use an approved doctor with teleconsult enabled and a patient.
    Book a video appointment, then confirm it as the assigned doctor.
-6. Click **Create Google Meet**, choose the intended host Google account, and
+6. Click **Create Google Meet**, confirm or choose the intended professional or
+   clinic-managed Google Account, and
    grant only the meeting-space creation permission. Confirm one room appears
    and that repeated clicks or refreshes do not create a second stored room.
    Confirm the resulting room uses the access policy required by your clinic.

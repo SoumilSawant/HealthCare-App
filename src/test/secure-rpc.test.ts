@@ -136,4 +136,22 @@ describe("secure portal RPC contracts", () => {
       appointmentStatuses: { Confirmed: 2 }
     });
   });
+
+  it("loads administrator doctor lists through the privileged RPC", async () => {
+    await adminApi.doctors();
+    await adminApi.pendingDoctors();
+
+    const adminCalls = vi.mocked(fetch).mock.calls.filter(([url]) =>
+      String(url).endsWith("soulplace.api.list_admin_doctors")
+    );
+    expect(adminCalls).toHaveLength(2);
+    expect(JSON.parse(String(adminCalls[0][1]?.body))).toEqual({
+      status: "",
+      limit: 200
+    });
+    expect(JSON.parse(String(adminCalls[1][1]?.body))).toEqual({
+      status: "Pending",
+      limit: 200
+    });
+  });
 });

@@ -83,7 +83,9 @@ Doctors can create a private Google Meet room from a confirmed video
 appointment; the saved link then appears in both doctor and patient appointment
 details. To enable creation outside demo mode:
 
-1. Enable the Google Meet REST API in a Google Cloud project.
+1. Create a Google Cloud project owned by the SoulPlace organization—not a
+   developer's personal Google account—and enable the Google Meet REST API.
+   Give at least two organization administrators access for continuity.
 2. Configure an OAuth consent screen and create an OAuth 2.0 Web client.
 3. Use separate Google Cloud projects for development/staging and production.
    Add each exact app origin (for example `http://localhost:8081`) to the
@@ -91,9 +93,11 @@ details. To enable creation outside demo mode:
 4. Set `VITE_GOOGLE_CLIENT_ID` to that web client ID and restart/rebuild the app.
    `.env.local` is intentionally ignored by Git, so every developer must set
    this value on their own machine.
-5. While the consent screen is in **Testing**, add each developer's Google
-   account under **Google Auth Platform → Audience → Test users**. An account
-   that is not listed cannot complete the local OAuth flow.
+5. While the consent screen is in **Testing**, add each doctor or developer's
+   Google Account under **Google Auth Platform → Audience → Test users**. A
+   Gmail address is not required: the person can create a Google Account using
+   their existing professional email. An account that is not listed cannot
+   complete the local OAuth flow.
 6. Before public launch, publish verified homepage, privacy-policy, and terms
    URLs; move the OAuth consent screen from Testing to Production; add the final
    HTTPS origin; and complete Google verification if requested for the
@@ -109,6 +113,12 @@ may need to ask to join and be admitted by the doctor. SoulPlace persists the
 Meet space identifier, join URL, scheduled time, participants, and lifecycle
 status—not the Google token or clinical notes.
 
+SoulPlace suggests the signed-in doctor's professional email in Google's
+authorization flow. The doctor can use a Google Account created with that
+non-Gmail address or choose a clinic-managed Google Workspace account. Meetings
+are created only under the account the doctor chooses; no developer or
+SoulPlace administrator's personal Google account is required at runtime.
+
 To reproduce real Meet creation on another development machine:
 
 1. Check out matching frontend and Soulplace backend revisions, then install
@@ -118,8 +128,8 @@ To reproduce real Meet creation on another development machine:
    client ID in `VITE_GOOGLE_CLIENT_ID`.
 3. Run the frontend on an origin already listed in the OAuth client's
    Authorized JavaScript origins, such as `http://localhost:8081`.
-4. Add the developer's Google account as an OAuth test user while the app is in
-   Testing.
+4. Add the doctor or developer's Google Account as an OAuth test user while the
+   app is in Testing. That Google Account may use an existing non-Gmail email.
 5. Create linked patient and approved doctor users in that local Frappe site,
    then create and confirm a teleconsult appointment before testing Meet.
 

@@ -11,6 +11,13 @@ import type {
   TeleconsultSession
 } from "../types/domain";
 
+function listAdminDoctors(status = "") {
+  return callRpc<Doctor[]>("soulplace.api.list_admin_doctors", {
+    status,
+    limit: 200
+  }).then((data) => ({ data }));
+}
+
 export const adminApi = {
   async dashboardStats() {
     if (!DEMO_MODE) {
@@ -75,6 +82,7 @@ export const adminApi = {
     };
   },
   pendingDoctors() {
+    if (!DEMO_MODE) return listAdminDoctors("Pending");
     return listRecords<Doctor>("Doctor", {
       fields: ["*"],
       filters: [["approval_status", "=", "Pending"]],
@@ -103,6 +111,7 @@ export const adminApi = {
     });
   },
   doctors() {
+    if (!DEMO_MODE) return listAdminDoctors();
     return listRecords<Doctor>("Doctor", {
       fields: ["*"],
       limitPageLength: 100

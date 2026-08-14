@@ -49,12 +49,19 @@ describe("GoogleMeetCard", () => {
       <GoogleMeetCard
         audience="doctor"
         appointmentStatus="Confirmed"
+        doctorEmail="doctor@clinic.example"
         onCreate={onCreate}
       />
     );
 
     fireEvent.click(screen.getByRole("button", { name: /Create Google Meet/i }));
     expect(onCreate).toHaveBeenCalledOnce();
+    expect(screen.getByText(/Gmail address is not required/i)).toBeInTheDocument();
+    expect(screen.getByText(/doctor@clinic\.example/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Set up a Google Account/i })).toHaveAttribute(
+      "href",
+      "https://accounts.google.com/signup"
+    );
   });
 
   it("disables creation when OAuth is not configured", () => {

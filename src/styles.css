@@ -2613,6 +2613,55 @@ tbody tr:last-child td {
   flex: 0 0 auto;
 }
 
+.meet-account-note {
+  display: flex;
+  max-width: 760px;
+  margin-top: 0.85rem;
+  padding: 0.72rem 0.8rem;
+  align-items: flex-start;
+  gap: 0.55rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #d9e7e2;
+  font-size: 0.74rem;
+  line-height: 1.55;
+}
+
+.meet-account-note > svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: #bcd5cb;
+}
+
+.meet-account-note span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.meet-account-note strong {
+  color: white;
+}
+
+.meet-account-note a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  color: white;
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.meet-account-note a:hover {
+  color: #d9eee6;
+}
+
+.meet-account-note a svg {
+  width: 13px;
+  height: 13px;
+}
+
 .meet-actions {
   display: flex;
   margin-top: 1rem;

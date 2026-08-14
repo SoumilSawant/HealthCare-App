@@ -13,7 +13,9 @@ import {
   Plus,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
+import { isUpcomingAppointment } from "../appointmentStatus";
 import { appointmentsApi } from "../api/appointments";
+import { syncAppointmentCache } from "../api/appointmentCache";
 import { normalizeApiError } from "../api/client";
 import { consultationsApi } from "../api/consultations";
 import { doctorsApi } from "../api/doctors";
@@ -84,6 +86,7 @@ export function DoctorDashboardPage() {
   const confirmed = rows.filter((item) => item.status === "Confirmed");
   const pending = rows.filter((item) => item.status === "Pending");
   const completed = rows.filter((item) => item.status === "Completed");
+  const upcoming = rows.filter((item) => isUpcomingAppointment(item, today));
   const earnings = completed.length * Number(auth.doctor?.consultation_fee || 0);
 
   return (
@@ -115,9 +118,9 @@ export function DoctorDashboardPage() {
         <div className="panel-header"><div><p className="eyebrow">Schedule</p><h2>Upcoming consultations</h2></div><Link to="/doctor/appointments">View calendar</Link></div>
         {query.isLoading ? <LoadingSkeleton rows={4} /> :
           query.isError ? <ErrorState error={query.error} onRetry={() => void query.refetch()} /> :
-          rows.filter((item) => item.appointment_date >= today && item.status !== "Cancelled").length ? (
+          upcoming.length ? (
             <div className="appointment-list compact">
-              {rows.filter((item) => item.appointment_date >= today && item.status !== "Cancelled").slice(0, 5).map((item) => (
+              {upcoming.slice(0, 5).map((item) => (
                 <AppointmentCard key={item.name} appointment={item} patientName={item.patient} actions={<Link className="text-link" to={`/doctor/appointments/${item.name}`}>Open <ArrowRight /></Link>} />
               ))}
             </div>
@@ -232,9 +235,9 @@ export function DoctorAppointmentDetailPage() {
   const session = useQuery({ queryKey: ["teleconsult", appointmentId], queryFn: () => teleconsultApi.list({ filters: [["appointment", "=", appointmentId || ""]], fields: ["*"], limitPageLength: 1 }), enabled: Boolean(appointment.data?.is_teleconsult) });
   const statusMutation = useMutation({
     mutationFn: (status: "Confirmed" | "Completed") => status === "Confirmed" ? appointmentsApi.confirm(appointmentId || "") : appointmentsApi.complete(appointmentId || ""),
-    onSuccess: (_, status) => {
+    onSuccess: (updated, status) => {
       toast.notify(`Appointment marked ${status.toLowerCase()}.`);
-      void queryClient.invalidateQueries({ queryKey: ["appointment", appointmentId] });
+      void syncAppointmentCache(queryClient, updated);
     },
     onError: (error) => toast.notify(normalizeApiError(error).message)
   });
@@ -247,7 +250,7 @@ export function DoctorAppointmentDetailPage() {
         throw new Error("Confirm the appointment before creating its Meet room.");
       }
 
-      const space = await googleMeetApi.createSpace();
+      const space = await googleMeetApi.createSpace({ loginHint: auth.doctor.email });
       return teleconsultApi.saveGoogleMeet(item.name, space.name, space.meetingUri);
     },
     onSuccess: () => {
@@ -272,6 +275,7 @@ export function DoctorAppointmentDetailPage() {
           session={session.data?.data[0]}
           loading={session.isLoading}
           configured={googleMeetApi.isConfigured()}
+          doctorEmail={auth.doctor.email}
           creating={createMeet.isPending}
           error={session.error || createMeet.error}
           onCreate={() => createMeet.mutate()}

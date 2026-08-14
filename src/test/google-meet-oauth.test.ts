@@ -14,31 +14,33 @@ function installGoogleIdentity({
   granted?: boolean;
   popupError?: "popup_closed" | "popup_failed_to_open";
 } = {}) {
+  const initTokenClient = vi.fn((config: {
+    callback(response: { access_token?: string; scope?: string }): void;
+    error_callback?(error: { type: string }): void;
+  }) => ({
+    requestAccessToken: () => {
+      if (popupError) {
+        config.error_callback?.({ type: popupError });
+      } else {
+        config.callback({
+          access_token: "short-lived-token",
+          scope: "https://www.googleapis.com/auth/meetings.space.created"
+        });
+      }
+    }
+  }));
   Object.defineProperty(window, "google", {
     configurable: true,
     value: {
       accounts: {
         oauth2: {
           hasGrantedAllScopes: () => granted,
-          initTokenClient: (config: {
-            callback(response: { access_token?: string; scope?: string }): void;
-            error_callback?(error: { type: string }): void;
-          }) => ({
-            requestAccessToken: () => {
-              if (popupError) {
-                config.error_callback?.({ type: popupError });
-              } else {
-                config.callback({
-                  access_token: "short-lived-token",
-                  scope: "https://www.googleapis.com/auth/meetings.space.created"
-                });
-              }
-            }
-          })
+          initTokenClient
         }
       }
     }
   });
+  return initTokenClient;
 }
 
 describe("Google Meet OAuth", () => {
@@ -51,7 +53,7 @@ describe("Google Meet OAuth", () => {
 
   it("creates a restricted room after the required scope is granted", async () => {
     vi.stubEnv("VITE_GOOGLE_CLIENT_ID", clientId);
-    installGoogleIdentity();
+    const initTokenClient = installGoogleIdentity();
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(JSON.stringify(meetSpace), {
         status: 200,
@@ -60,7 +62,12 @@ describe("Google Meet OAuth", () => {
     );
     const { googleMeetApi } = await import("../api/googleMeet");
 
-    await expect(googleMeetApi.createSpace()).resolves.toEqual(meetSpace);
+    await expect(
+      googleMeetApi.createSpace({ loginHint: "doctor@clinic.example" })
+    ).resolves.toEqual(meetSpace);
+    expect(initTokenClient).toHaveBeenCalledWith(
+      expect.objectContaining({ login_hint: "doctor@clinic.example" })
+    );
     expect(fetch).toHaveBeenCalledWith(
       "https://meet.googleapis.com/v2/spaces",
       expect.objectContaining({
