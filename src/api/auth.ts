@@ -1,5 +1,11 @@
-import { callRpc, clearSessionTokens, getRecord, listRecords, request } from "./client";
-import type { AuthSession, Doctor, PatientUser } from "../types/domain";
+import { callRpc, clearSessionTokens, request } from "./client";
+import type { AuthSession } from "../types/domain";
+import {
+  normalizeEmail,
+  normalizeIndianPhone,
+  validateDoctorRegistration,
+  validatePatientRegistration
+} from "../validation";
 import {
   DEMO_MODE,
   demoLogin,
@@ -26,16 +32,7 @@ interface PatientLoginResponse {
   };
 }
 
-interface DoctorRegistrationResponse {
-  success: boolean;
-  message: string;
-}
-
-interface UserDocument {
-  name: string;
-  full_name?: string;
-  roles?: Array<{ role: string }>;
-}
+export { normalizeIndianPhone } from "../validation";
 
 export const authApi = {
   loginPatient(phoneOrEmail: string, password: string) {
@@ -56,10 +53,9 @@ export const authApi = {
           : undefined
       } satisfies PatientLoginResponse);
     }
-    const normalizedPhone = phoneOrEmail.replace(/\D/g, "");
     const usr = phoneOrEmail.includes("@")
-      ? phoneOrEmail
-      : `${normalizedPhone}@soulplace.local`;
+      ? normalizeEmail(phoneOrEmail)
+      : `${normalizeIndianPhone(phoneOrEmail)}@soulplace.local`;
     return callRpc<PatientLoginResponse>(
       "soulplace.auth.patient_login",
       { usr, pwd: password },
@@ -121,8 +117,9 @@ export const authApi = {
     consent_accepted: boolean;
     consent_version: string;
   }) {
+    const validated = validatePatientRegistration(input);
     if (DEMO_MODE) {
-      const patient = demoRegisterPatient(input);
+      const patient = demoRegisterPatient(validated);
       return Promise.resolve({
         success: true,
         user: {
@@ -140,27 +137,66 @@ export const authApi = {
     }
     return callRpc<PatientLoginResponse>(
       "soulplace.auth.register_patient",
-      input,
+      validated,
       true
     );
   },
 
   registerDoctor(input: {
-    fullName: string;
+    full_name: string;
     email: string;
-    mobileNumber: string;
+    mobile_number: string;
     password: string;
-    specialization: string;
-    consultationFee: number;
-    avgConsultDurationMins: number;
-    specializationTags: string;
-    teleconsultEnabled: boolean;
-    professionalTermsConsent: boolean;
-    verificationProof?: string;
+    specialty: string;
+    medical_registration: string;
+    consultation_fee: number;
+    avg_consult_duration_mins: number;
+    specialization_tags: string;
+    teleconsult_enabled: boolean;
+    professional_consent: boolean;
+    consent_version: string;
+    verification: File;
   }) {
-    return callRpc<DoctorRegistrationResponse>(
-      "soulplace.auth.register_doctor",
-      input,
+    const validated = validateDoctorRegistration(input);
+    const body = new FormData();
+    Object.entries(validated).forEach(([key, value]) => {
+      if (key === "verification") {
+        body.append(key, value as File);
+      } else {
+        body.append(key, typeof value === "boolean" ? (value ? "1" : "0") : String(value));
+      }
+    });
+    return request<{ success: boolean; status: "Pending" }>(
+      "/api/method/soulplace.api.register_doctor",
+      { method: "POST", body, skipCsrf: true }
+    );
+  },
+
+  requestPatientOtp(phoneno: string, purpose: "login" | "reset" = "login") {
+    return callRpc<{ sent: boolean; expires_in: number }>(
+      "soulplace.auth.request_patient_otp",
+      { phoneno: normalizeIndianPhone(phoneno), purpose },
+      true
+    );
+  },
+
+  verifyPatientOtp(input: {
+    phoneno: string;
+    otp: string;
+    purpose?: "login" | "reset";
+    new_password?: string;
+  }) {
+    return callRpc<PatientLoginResponse & { password_reset?: boolean }>(
+      "soulplace.auth.verify_patient_otp",
+      { ...input, phoneno: normalizeIndianPhone(input.phoneno) },
+      true
+    );
+  },
+
+  requestEmailPasswordReset(email: string) {
+    return callRpc<void>(
+      "frappe.core.doctype.user.user.reset_password",
+      { user: normalizeEmail(email) },
       true
     );
   },
@@ -183,7 +219,7 @@ export const authApi = {
         patient: identity.patient,
         doctor: identity.doctor
       };
-    } catch (e) {
+    } catch {
       return { status: "anonymous", roles: [] };
     }
   }

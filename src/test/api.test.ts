@@ -6,6 +6,7 @@ import { consentsApi } from "../api/consents";
 import { adminApi } from "../api/admin";
 import { doctorsApi } from "../api/doctors";
 import { authApi } from "../api/auth";
+import { teleconsultApi } from "../api/teleconsult";
 import { ApiError, request } from "../api/client";
 
 function ok(data: unknown) {
@@ -28,26 +29,28 @@ describe("typed Frappe API workflows", () => {
     });
   });
 
-  it("creates a web appointment with exact configured fields", async () => {
-    await appointmentsApi.create({
-      patient: "PAT-1",
+  it("books through the atomic server endpoint with consent", async () => {
+    await appointmentsApi.book({
       doctor: "DOC-1",
       appointment_date: "2026-08-10",
       appointment_time: "10:30",
-      status: "Pending",
       symptoms: "Anxiety",
       booking_source: "Web",
       is_teleconsult: 1
+    }, {
+      privacy: true,
+      telemedicine: true,
+      version: "1.0"
     });
     const mutation = vi.mocked(fetch).mock.calls.find(([url]) =>
-      String(url).includes("/api/resource/Patient%20Appointment")
+      String(url).includes("/api/method/soulplace.api.book_appointment")
     );
     expect(mutation).toBeDefined();
     expect(JSON.parse(String(mutation?.[1]?.body))).toMatchObject({
-      patient: "PAT-1",
       doctor: "DOC-1",
-      booking_source: "Web",
-      is_teleconsult: 1
+      is_teleconsult: 1,
+      privacy_consent: true,
+      telemedicine_consent: true
     });
   });
 
@@ -83,62 +86,75 @@ describe("typed Frappe API workflows", () => {
   });
 
   it("submits a doctor application through the registration RPC", async () => {
+    const verification = new File(["%PDF-1.4"], "registration.pdf", {
+      type: "application/pdf"
+    });
     await authApi.registerDoctor({
-      fullName: "Doctor Name",
+      full_name: "Doctor Name",
       email: "doctor@example.com",
-      mobileNumber: "9876543210",
+      mobile_number: "9876543210",
       password: "SecurePass123!",
-      specialization: "Clinical Psychology",
-      consultationFee: 1200,
-      avgConsultDurationMins: 45,
-      specializationTags: "Anxiety, Stress",
-      teleconsultEnabled: true,
-      professionalTermsConsent: true
+      specialty: "Clinical Psychology",
+      medical_registration: "MED-12345",
+      consultation_fee: 1200,
+      avg_consult_duration_mins: 45,
+      specialization_tags: "Anxiety, Stress",
+      teleconsult_enabled: true,
+      professional_consent: true,
+      consent_version: "1.0",
+      verification
     });
 
     const registration = vi.mocked(fetch).mock.calls.find(([url]) =>
-      String(url).includes("/api/method/soulplace.auth.register_doctor")
+      String(url).includes("/api/method/soulplace.api.register_doctor")
     );
     expect(registration).toBeDefined();
-    expect(JSON.parse(String(registration?.[1]?.body))).toMatchObject({
-      fullName: "Doctor Name",
-      email: "doctor@example.com",
-      specialization: "Clinical Psychology"
-    });
+    const body = registration?.[1]?.body;
+    expect(body).toBeInstanceOf(FormData);
+    expect((body as FormData).get("full_name")).toBe("Doctor Name");
+    expect((body as FormData).get("email")).toBe("doctor@example.com");
+    expect((body as FormData).get("specialty")).toBe("Clinical Psychology");
+    expect((body as FormData).get("verification")).toBe(verification);
   });
 
   it("cancels an appointment with its configured reason field", async () => {
     await appointmentsApi.cancel("APT-1", "Schedule conflict");
     const mutation = vi.mocked(fetch).mock.calls.find(([url]) =>
-      String(url).endsWith("/api/resource/Patient%20Appointment/APT-1")
+      String(url).endsWith("/api/method/soulplace.api.update_appointment_status")
     );
     expect(JSON.parse(String(mutation?.[1]?.body))).toEqual({
+      name: "APT-1",
       status: "Cancelled",
-      cancel_reason: "Schedule conflict"
+      reason: "Schedule conflict"
     });
   });
 
   it("updates doctor approval, rejection, and availability through real Doctor fields", async () => {
     await adminApi.approveDoctor("DOC-1");
-    await adminApi.rejectDoctor("DOC-1");
-    await doctorsApi.update("DOC-1", {
+    await adminApi.rejectDoctor("DOC-1", "Registration could not be verified");
+    await doctorsApi.saveSchedule({
+      schedule_json: "{}",
       availability: "Weekdays 09:00–17:00",
       status: "Active",
       teleconsult_enabled: 1,
       avg_consult_duration_mins: 45
     });
-    const calls = vi.mocked(fetch).mock.calls.filter(([url]) =>
-      String(url).endsWith("/api/resource/Doctor/DOC-1")
+    const reviews = vi.mocked(fetch).mock.calls.filter(([url]) =>
+      String(url).endsWith("/api/method/soulplace.api.review_doctor")
     );
-    expect(JSON.parse(String(calls[0][1]?.body))).toMatchObject({
-      approval_status: "Approved",
-      status: "Active"
+    expect(JSON.parse(String(reviews[0][1]?.body))).toMatchObject({
+      name: "DOC-1",
+      decision: "Approved"
     });
-    expect(JSON.parse(String(calls[1][1]?.body))).toMatchObject({
-      approval_status: "Rejected",
-      status: "Inactive"
+    expect(JSON.parse(String(reviews[1][1]?.body))).toMatchObject({
+      name: "DOC-1",
+      decision: "Rejected",
+      reason: "Registration could not be verified"
     });
-    expect(JSON.parse(String(calls[2][1]?.body))).toMatchObject({
+    const schedule = vi.mocked(fetch).mock.calls.find(([url]) =>
+      String(url).endsWith("/api/method/soulplace.api.save_doctor_schedule")
+    );
+    expect(JSON.parse(String(schedule?.[1]?.body))).toMatchObject({
       teleconsult_enabled: 1,
       avg_consult_duration_mins: 45
     });
@@ -159,9 +175,26 @@ describe("typed Frappe API workflows", () => {
     });
     await consentsApi.grant("PAT-1", "Telemedicine");
     const urls = vi.mocked(fetch).mock.calls.map(([url]) => String(url));
-    expect(urls.some((url) => url.endsWith("/api/resource/Consultation"))).toBe(true);
-    expect(urls.some((url) => url.endsWith("/api/resource/Prescription"))).toBe(true);
-    expect(urls.some((url) => url.endsWith("/api/resource/Patient%20Consent%20Record"))).toBe(true);
+    expect(urls.some((url) => url.endsWith("/api/method/soulplace.api.save_consultation"))).toBe(true);
+    expect(urls.some((url) => url.endsWith("/api/method/soulplace.api.save_prescription"))).toBe(true);
+    expect(urls.some((url) => url.endsWith("/api/method/soulplace.api.grant_consent"))).toBe(true);
+  });
+
+  it("persists a Google Meet link in the shared teleconsult session", async () => {
+    await teleconsultApi.saveGoogleMeet(
+      "APT-1",
+      "spaces/meet-space-1",
+      "https://meet.google.com/abc-defg-hij"
+    );
+    const mutation = vi.mocked(fetch).mock.calls.find(([url]) =>
+      String(url).endsWith("/api/method/soulplace.api.save_google_meet_session")
+    );
+    expect(mutation).toBeDefined();
+    expect(JSON.parse(String(mutation?.[1]?.body))).toMatchObject({
+      appointment: "APT-1",
+      meeting_id: "spaces/meet-space-1",
+      meeting_link: "https://meet.google.com/abc-defg-hij"
+    });
   });
 
   it("normalizes Frappe permission errors", async () => {

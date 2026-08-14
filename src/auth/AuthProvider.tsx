@@ -58,7 +58,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   useEffect(() => {
-    void restore();
+    const task = window.setTimeout(() => void restore(), 0);
+    return () => window.clearTimeout(task);
   }, [restore]);
 
   const login = useCallback(

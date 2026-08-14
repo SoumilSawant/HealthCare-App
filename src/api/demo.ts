@@ -127,7 +127,6 @@ const appointments: Appointment[] = [
     symptoms: "Work-related anxiety and difficulty sleeping",
     booking_source: "Web",
     is_teleconsult: 1,
-    teleconsult_session_id: "TEL-DEMO-001",
     creation: timestamp(-3)
   },
   {
@@ -167,6 +166,19 @@ const appointments: Appointment[] = [
     booking_source: "Admin",
     is_teleconsult: 0,
     creation: timestamp(-6)
+  },
+  {
+    name: "APT-DEMO-005",
+    patient: "PAT-DEMO-001",
+    doctor: "DOC-DEMO-001",
+    appointment_date: localDate(2),
+    appointment_time: "15:30",
+    status: "Confirmed",
+    symptoms: "Follow-up video consultation",
+    booking_source: "Web",
+    is_teleconsult: 1,
+    teleconsult_session_id: "TEL-DEMO-005",
+    creation: timestamp(-2)
   }
 ];
 
@@ -201,16 +213,29 @@ const prescriptions: Prescription[] = [
 
 const teleconsults: TeleconsultSession[] = [
   {
-    name: "TEL-DEMO-001",
-    appointment: "APT-DEMO-001",
+    name: "TEL-DEMO-003",
+    appointment: "APT-DEMO-003",
     practitioner: "DOC-DEMO-001",
     patient: "PAT-DEMO-001",
-    provider: "Jitsi",
-    meeting_id: "soulplace-demo-room",
-    meeting_link: "https://meet.jit.si/soulplace-demo-room",
-    start_time: timestamp(1, 10),
+    provider: "Custom",
+    meeting_id: "spaces/demo-completed-consultation",
+    meeting_link: "https://meet.google.com/abc-defg-hij",
+    start_time: timestamp(-7, 11),
+    end_time: timestamp(-7, 12),
+    session_status: "Completed",
+    creation: timestamp(-12)
+  },
+  {
+    name: "TEL-DEMO-005",
+    appointment: "APT-DEMO-005",
+    practitioner: "DOC-DEMO-001",
+    patient: "PAT-DEMO-001",
+    provider: "Custom",
+    meeting_id: "spaces/demo-upcoming-consultation",
+    meeting_link: "https://meet.google.com/abc-defg-hij",
+    start_time: timestamp(2, 15),
     session_status: "Created",
-    creation: timestamp(-3)
+    creation: timestamp(-2)
   }
 ];
 

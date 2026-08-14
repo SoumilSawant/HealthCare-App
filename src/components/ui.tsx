@@ -4,6 +4,7 @@ import {
   useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
   type ButtonHTMLAttributes,
   type FormEvent,
@@ -179,11 +180,11 @@ export function LoadingSkeleton({
 
 export function LoadingPage({ label = "Loading" }: { label?: string }) {
   return (
-    <main className="state-page" aria-live="polite">
+    <div id="main-content" className="state-page" role="status" aria-live="polite">
       <div className="loader" />
       <h1>{label}</h1>
       <p>Just a moment while we prepare your care space.</p>
-    </main>
+    </div>
   );
 }
 
@@ -295,8 +296,8 @@ export function PasswordField({
   const descriptionId = `${inputId}-description`;
   const [visible, setVisible] = useState(false);
   return (
-    <label className="field" htmlFor={inputId}>
-      <span>{label}</span>
+    <div className="field">
+      <label htmlFor={inputId}>{label}</label>
       <span className="password-field">
         <input
           id={inputId}
@@ -320,7 +321,7 @@ export function PasswordField({
           {error || hint}
         </small>
       )}
-    </label>
+    </div>
   );
 }
 
@@ -402,7 +403,7 @@ export function FileUpload({
       <Upload aria-hidden="true" />
       <span>
         <strong>{label}</strong>
-        <small>{value || "PDF, JPG or PNG · private upload"}</small>
+        <small>{value || "PDF, JPG or PNG · private upload · 5 MB maximum"}</small>
       </span>
       <input
         id={id}
@@ -429,26 +430,53 @@ export function Modal({
   onClose(): void;
   footer?: ReactNode;
 }>) {
+  const titleId = useId();
+  const dialogRef = useRef<HTMLElement>(null);
   useEffect(() => {
     if (!open) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const focusableSelector =
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const focusable = () =>
+      Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(focusableSelector) || []);
+    window.requestAnimationFrame(() => focusable()[0]?.focus());
     const close = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+      if (event.key !== "Tab") return;
+      const elements = focusable();
+      if (!elements.length) return;
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener("keydown", close);
-    return () => document.removeEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("keydown", close);
+      previouslyFocused?.focus();
+    };
   }, [open, onClose]);
   if (!open) return null;
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <section
+        ref={dialogRef}
         className="modal"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="modal-title"
+        aria-labelledby={titleId}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <header>
-          <h2 id="modal-title">{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           <button className="icon-button" onClick={onClose} aria-label="Close">
             <X />
           </button>
@@ -470,10 +498,42 @@ export function Drawer({
   title: string;
   onClose(): void;
 }>) {
+  const drawerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const selector = 'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const elements = () => Array.from(drawerRef.current?.querySelectorAll<HTMLElement>(selector) || []);
+    window.requestAnimationFrame(() => elements()[0]?.focus());
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+      if (event.key !== "Tab") return;
+      const focusable = elements();
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      previouslyFocused?.focus();
+    };
+  }, [open, onClose]);
   if (!open) return null;
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <aside
+        ref={drawerRef}
         className="drawer"
         role="dialog"
         aria-modal="true"
@@ -671,6 +731,13 @@ export function DataTable<T extends { name: string }>({
               key={row.name}
               className={onRowClick ? "clickable-row" : undefined}
               onClick={() => onRowClick?.(row)}
+              onKeyDown={(event) => {
+                if (!onRowClick || (event.key !== "Enter" && event.key !== " ")) return;
+                event.preventDefault();
+                onRowClick(row);
+              }}
+              tabIndex={onRowClick ? 0 : undefined}
+              aria-label={onRowClick ? `Open ${row.name}` : undefined}
             >
               {columns.map((column) => (
                 <td key={column.key}>{column.render(row)}</td>

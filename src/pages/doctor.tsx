@@ -1,8 +1,7 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import {
-  Activity,
   ArrowRight,
   CalendarCheck,
   CalendarDays,
@@ -10,12 +9,8 @@ import {
   Clock3,
   FileHeart,
   IndianRupee,
-  PauseCircle,
   Pill,
   Plus,
-  Stethoscope,
-  UserRound,
-  Video
 } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
 import { appointmentsApi } from "../api/appointments";
@@ -25,6 +20,8 @@ import { doctorsApi } from "../api/doctors";
 import { patientsApi } from "../api/patients";
 import { prescriptionsApi } from "../api/prescriptions";
 import { teleconsultApi } from "../api/teleconsult";
+import { googleMeetApi } from "../api/googleMeet";
+import { GoogleMeetCard } from "../components/GoogleMeetCard";
 import {
   AppointmentCard,
   Breadcrumbs,
@@ -52,7 +49,6 @@ import type {
   Appointment,
   Consultation,
   DoctorScheduleException,
-  PatientUser,
   Prescription
 } from "../types/domain";
 
@@ -243,6 +239,25 @@ export function DoctorAppointmentDetailPage() {
     },
     onError: (error) => toast.notify(normalizeApiError(error).message)
   });
+  const createMeet = useMutation({
+    mutationFn: async () => {
+      const item = appointment.data;
+      if (!item || !auth.doctor) throw new Error("The appointment is not ready yet.");
+      if (!item.is_teleconsult) throw new Error("This is not a video consultation.");
+      if (item.status !== "Confirmed") {
+        throw new Error("Confirm the appointment before creating its Meet room.");
+      }
+
+      const space = await googleMeetApi.createSpace();
+      return teleconsultApi.saveGoogleMeet(item.name, space.name, space.meetingUri);
+    },
+    onSuccess: () => {
+      toast.notify("Google Meet room created. You and the patient can now join.");
+      void queryClient.invalidateQueries({ queryKey: ["teleconsult", appointmentId] });
+      void queryClient.invalidateQueries({ queryKey: ["appointment", appointmentId] });
+      void queryClient.invalidateQueries({ queryKey: ["appointments", "doctor"] });
+    }
+  });
   if (appointment.isLoading) return <LoadingSkeleton rows={7} />;
   if (appointment.isError) return <ErrorState error={appointment.error} onRetry={() => void appointment.refetch()} />;
   if (!appointment.data || appointment.data.doctor !== auth.doctor?.name) return <ErrorState error={new Error("This appointment is not assigned to your Doctor record.")} />;
@@ -251,6 +266,18 @@ export function DoctorAppointmentDetailPage() {
     <>
       <Breadcrumbs items={[{ label: "Appointments", to: "/doctor/appointments" }, { label: item.name }]} />
       <PageHeader title="Appointment workspace" description={`${item.appointment_date} at ${item.appointment_time}`} actions={<StatusBadge status={item.status} />} />
+      {item.is_teleconsult ? (
+        <GoogleMeetCard
+          audience="doctor"
+          appointmentStatus={item.status}
+          session={session.data?.data[0]}
+          loading={session.isLoading}
+          configured={googleMeetApi.isConfigured()}
+          creating={createMeet.isPending}
+          error={session.error || createMeet.error}
+          onCreate={() => createMeet.mutate()}
+        />
+      ) : null}
       <div className="clinical-layout">
         <section className="panel">
           <div className="patient-header"><span className="avatar avatar-profile">{patient.data?.name1?.charAt(0) || "P"}</span><div><p className="eyebrow">Patient</p><h2>{patient.data?.name1 || item.patient}</h2><p>{patient.data ? `${patient.data.age} years · ${patient.data.gender}` : "Loading profile"}</p></div></div>
@@ -258,15 +285,12 @@ export function DoctorAppointmentDetailPage() {
           <div className="card-actions">
             {item.status === "Pending" && <Button disabled={statusMutation.isPending} onClick={() => statusMutation.mutate("Confirmed")}>{statusMutation.isPending ? "Confirming…" : "Confirm appointment"}</Button>}
             {item.status === "Confirmed" && <Button disabled={statusMutation.isPending} onClick={() => statusMutation.mutate("Completed")}>{statusMutation.isPending ? "Updating…" : "Mark completed"}</Button>}
-            {session.data?.data[0]?.meeting_link && <a className="button button-secondary" href={session.data.data[0].meeting_link} target="_blank" rel="noreferrer"><Video /> Join teleconsult</a>}
           </div>
         </section>
         <aside className="panel">
           <h2>Clinical actions</h2>
           <Link className="action-tile" to={`/doctor/consultations/new?appointment=${encodeURIComponent(item.name)}`}><FileHeart /><span><strong>Open consultation note</strong><small>Diagnosis, SOAP notes, summary</small></span><ArrowRight /></Link>
-          <IntegrationNotice title="Permission boundary">
-            The frontend verifies doctor ownership, but secure enforcement requires backend record-level permission rules.
-          </IntegrationNotice>
+          <p className="text-secondary">Patient records in this workspace are limited to appointments assigned to you.</p>
         </aside>
       </div>
     </>
@@ -350,8 +374,9 @@ export function DoctorAvailabilityPage() {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      await doctorsApi.saveSchedule(JSON.stringify(scheduleData), availability);
-      await doctorsApi.update(auth.doctor?.name || "", {
+      await doctorsApi.saveSchedule({
+        schedule_json: JSON.stringify(scheduleData),
+        availability,
         status,
         teleconsult_enabled: teleconsult ? 1 : 0,
         avg_consult_duration_mins: Number(duration)
@@ -411,9 +436,6 @@ export function ScheduleExceptionsPage({ admin = false }: { admin?: boolean }) {
   return (
     <>
       <PageHeader eyebrow="Calendar controls" title="Schedule exceptions" description="Block time, override your regular schedule, or add extra slots." actions={<Button onClick={() => setOpen((value) => !value)}><Plus /> Add exception</Button>} />
-      <IntegrationNotice>
-        The backend currently grants Doctor Schedule Exception access only to System Manager. Doctor self-service requires scoped create/read/write permissions.
-      </IntegrationNotice>
       {open && <section className="panel"><form className="form-grid" onSubmit={(event) => { event.preventDefault(); create.mutate(); }}>
         {admin && <FormField label="Practitioner record name" value={form.practitioner} onChange={(event) => setForm((current) => ({ ...current, practitioner: event.target.value }))} required />}
         <SelectField label="Exception type" value={form.exception_type} onChange={(event) => setForm((current) => ({ ...current, exception_type: event.target.value as DoctorScheduleException["exception_type"] }))}><option>Block</option><option>Override</option><option>Add Slots</option></SelectField>
@@ -485,7 +507,6 @@ export function ConsultationWorkspacePage() {
       <ConsultationEditor value={current} onChange={setForm} onSave={() => save.mutate()} busy={save.isPending} />
       {save.isError && <ErrorState error={save.error} />}
       {!isNew && <section className="panel prescription-section"><div className="panel-header"><div><p className="eyebrow">Medication</p><h2>Prescriptions</h2></div></div>
-        <IntegrationNotice>The backend currently grants Prescription access only to System Manager. Doctor creation requires corrected scoped permissions.</IntegrationNotice>
         <PrescriptionForm onSubmit={(value) => addPrescription.mutate(value)} busy={addPrescription.isPending} />
         {prescriptions.data?.data.length ? <div className="prescription-list">{prescriptions.data.data.map((item) => <article key={item.name}><span className="shortcut-icon gold"><Pill /></span><div><strong>{item.medicine_name}</strong><p>{item.dosage}</p><small>{item.instructions}</small></div></article>)}</div> : null}
       </section>}
@@ -504,7 +525,6 @@ export function DoctorPrescriptionsPage() {
   return (
     <>
       <PageHeader eyebrow="Medication records" title="Prescriptions" description="Review medicines created through your consultations." />
-      <IntegrationNotice>The Prescription DocType is System Manager-only in the current backend.</IntegrationNotice>
       {query.isLoading ? <LoadingSkeleton rows={6} /> : query.isError ? <ErrorState error={query.error} onRetry={() => void query.refetch()} /> : query.data!.data.length ? <DataTable rows={query.data!.data} columns={columns} caption="Prescriptions" /> : <EmptyState title="No prescriptions" description="Created prescriptions will appear here." />}
     </>
   );
@@ -545,7 +565,7 @@ export function DoctorSettingsPage() {
       <PageHeader eyebrow="Workspace preferences" title="Settings" description="Review account access and clinical configuration." />
       <div className="settings-list">
         <section className="panel"><h2>Account access</h2><div className="setting-row"><span><strong>Approval status</strong><small>Controlled by an administrator.</small></span><StatusBadge status={auth.doctor?.approval_status} /></div><div className="setting-row"><span><strong>Authentication</strong><small>Secure Frappe session cookie.</small></span><CheckCircle2 /></div></section>
-        <section className="panel"><h2>Clinical safeguards</h2><IntegrationNotice>Server-side doctor-to-patient record scoping is missing. Do not deploy clinical workflows until backend permissions are corrected.</IntegrationNotice></section>
+        <section className="panel"><h2>Clinical safeguards</h2><div className="setting-row"><span><strong>Record access</strong><small>Limited server-side to your assigned appointments and clinical records.</small></span><CheckCircle2 /></div></section>
       </div>
     </>
   );

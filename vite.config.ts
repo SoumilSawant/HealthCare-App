@@ -37,7 +37,15 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: "jsdom",
       setupFiles: "./src/test/setup.ts",
-      css: true
+      exclude: ["e2e/**", "node_modules/**", "dist/**"],
+      css: true,
+      coverage: {
+        provider: "v8",
+        reporter: ["text", "html", "lcov"],
+        include: ["src/api/**/*.{ts,tsx}", "src/auth/**/*.{ts,tsx}", "src/components/GoogleMeetCard.tsx"],
+        // Ratchet from the audited baseline; raise these as new workflow tests land.
+        thresholds: { lines: 53, functions: 42, statements: 53, branches: 60 }
+      }
     }
   };
 });

@@ -1,8 +1,7 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { lazy, Suspense, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
-  Activity,
   ArrowRight,
   CalendarDays,
   CheckCircle2,
@@ -13,25 +12,10 @@ import {
   ShieldAlert,
   Stethoscope,
   UserRound,
-  UsersRound,
-  Video,
   XCircle
 } from "lucide-react";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
-} from "recharts";
 import { adminApi } from "../api/admin";
+import { absoluteFrappeUrl } from "../api/client";
 import { doctorsApi } from "../api/doctors";
 import {
   ConfirmDialog,
@@ -40,7 +24,6 @@ import {
   EmptyState,
   ErrorState,
   FormField,
-  IntegrationNotice,
   LoadingSkeleton,
   PageHeader,
   Pagination,
@@ -65,12 +48,7 @@ import type {
   TeleconsultSession
 } from "../types/domain";
 
-const statusColors: Record<string, string> = {
-  Pending: "#d69d3a",
-  Confirmed: "#3c7b69",
-  Completed: "#6689a8",
-  Cancelled: "#bb615f"
-};
+const AdminCharts = lazy(() => import("../components/AdminCharts"));
 
 export function AdminDashboardPage() {
   const stats = useQuery({
@@ -84,24 +62,14 @@ export function AdminDashboardPage() {
   if (stats.isLoading) return <LoadingSkeleton rows={8} />;
   if (stats.isError) return <ErrorState error={stats.error} onRetry={() => void stats.refetch()} />;
   const value = stats.data!;
-  const statusData = Object.entries(
-    value.appointments.reduce<Record<string, number>>((acc, item) => {
-      acc[item.status] = (acc[item.status] || 0) + 1;
-      return acc;
-    }, {})
-  ).map(([name, count]) => ({ name, count }));
-  const appointmentTrend = Object.entries(
-    value.appointments.reduce<Record<string, number>>((acc, item) => {
-      acc[item.appointment_date] = (acc[item.appointment_date] || 0) + 1;
-      return acc;
-    }, {})
-  )
-    .sort(([a], [b]) => a.localeCompare(b))
+  const statusData = Object.entries(value.appointmentStatuses).map(([name, count]) => ({ name, count }));
+  const appointmentTrend = value.appointmentTrend
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
     .slice(-14)
-    .map(([date, count]) => ({ date: date.slice(5), count }));
+    .map(({ date, count }) => ({ date: String(date).slice(5), count }));
   const approvalData = ["Pending", "Approved", "Rejected"].map((name) => ({
     name,
-    count: value.doctors.filter((doctor) => doctor.approval_status === name).length
+    count: value.doctorApprovals[name] || 0
   }));
 
   return (
@@ -121,19 +89,7 @@ export function AdminDashboardPage() {
         <StatCard label="Cancelled appointments" value={value.cancelledAppointments} icon={<XCircle />} tone="rose" />
       </div>
       <div className="chart-grid">
-        <section className="panel chart-card">
-          <div className="panel-header"><div><p className="eyebrow">Demand</p><h2>Appointments over time</h2></div></div>
-          {appointmentTrend.length ? <ResponsiveContainer width="100%" height={260}><AreaChart data={appointmentTrend}><defs><linearGradient id="sageArea" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#4d8070" stopOpacity={0.35} /><stop offset="95%" stopColor="#4d8070" stopOpacity={0} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e2d8" /><XAxis dataKey="date" tickLine={false} axisLine={false} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} /><Tooltip /><Area type="monotone" dataKey="count" stroke="#3c6a5b" strokeWidth={3} fill="url(#sageArea)" /></AreaChart></ResponsiveContainer> : <EmptyState title="No appointment trend" description="Appointment records will populate this chart." />}
-        </section>
-        <section className="panel chart-card">
-          <div className="panel-header"><div><p className="eyebrow">Outcomes</p><h2>Appointment statuses</h2></div></div>
-          {statusData.length ? <ResponsiveContainer width="100%" height={260}><PieChart><Pie data={statusData} dataKey="count" nameKey="name" innerRadius={64} outerRadius={95} paddingAngle={3}>{statusData.map((entry) => <Cell key={entry.name} fill={statusColors[entry.name] || "#8c8c86"} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer> : <EmptyState title="No status data" description="Status distribution will appear here." />}
-          <div className="chart-legend">{statusData.map((item) => <span key={item.name}><i style={{ background: statusColors[item.name] }} />{item.name} ({item.count})</span>)}</div>
-        </section>
-        <section className="panel chart-card">
-          <div className="panel-header"><div><p className="eyebrow">Network</p><h2>Doctor approvals</h2></div></div>
-          <ResponsiveContainer width="100%" height={240}><BarChart data={approvalData}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e2d8" /><XAxis dataKey="name" tickLine={false} axisLine={false} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} /><Tooltip /><Bar dataKey="count" fill="#b99552" radius={[8, 8, 0, 0]} /></BarChart></ResponsiveContainer>
-        </section>
+        <Suspense fallback={<LoadingSkeleton rows={6} />}><AdminCharts appointmentTrend={appointmentTrend} statusData={statusData} approvalData={approvalData} /></Suspense>
         <section className="panel approval-queue">
           <div className="panel-header"><div><p className="eyebrow">Quick action</p><h2>Approval queue</h2></div><Link to="/admin/doctors?status=Pending">Open all</Link></div>
           {pending.isLoading ? <LoadingSkeleton rows={4} compact /> :
@@ -254,8 +210,8 @@ export function AdminDoctorDetailPage() {
     onSuccess: () => { toast.notify("Doctor approved."); void queryClient.invalidateQueries({ queryKey: ["admin"] }); }
   });
   const reject = useMutation({
-    mutationFn: () => adminApi.rejectDoctor(doctorId || ""),
-    onSuccess: () => { toast.notify("Doctor status changed to Rejected; reason could not be persisted because the backend has no field."); setRejectOpen(false); void queryClient.invalidateQueries({ queryKey: ["admin"] }); }
+    mutationFn: () => adminApi.rejectDoctor(doctorId || "", reason),
+    onSuccess: () => { toast.notify("Doctor application rejected with the review reason recorded."); setRejectOpen(false); void queryClient.invalidateQueries({ queryKey: ["admin"] }); void doctor.refetch(); }
   });
   if (doctor.isLoading) return <LoadingSkeleton rows={8} />;
   if (doctor.isError) return <ErrorState error={doctor.error} onRetry={() => void doctor.refetch()} />;
@@ -267,21 +223,19 @@ export function AdminDoctorDetailPage() {
       <div className="approval-layout">
         <section className="panel">
           <h2>Professional profile</h2>
-          <dl className="detail-list"><div><dt>Full name</dt><dd>{item.full_name}</dd></div><div><dt>Email</dt><dd>{item.email}</dd></div><div><dt>Mobile</dt><dd>{item.mobile_number}</dd></div><div><dt>Specialty</dt><dd>{item.specialty}</dd></div><div><dt>Specialization tags</dt><dd>{item.specialization_tags || "Not provided"}</dd></div><div><dt>Consultation fee</dt><dd>₹{Number(item.consultation_fee || 0).toLocaleString()}</dd></div><div><dt>Average duration</dt><dd>{item.avg_consult_duration_mins || 30} minutes</dd></div><div><dt>Teleconsult</dt><dd>{item.teleconsult_enabled ? "Enabled" : "Disabled"}</dd></div></dl>
+          <dl className="detail-list"><div><dt>Full name</dt><dd>{item.full_name}</dd></div><div><dt>Email</dt><dd>{item.email}</dd></div><div><dt>Mobile</dt><dd>{item.mobile_number}</dd></div><div><dt>Specialty</dt><dd>{item.specialty}</dd></div><div><dt>Medical registration</dt><dd>{item.medical_registration || "Not provided"}</dd></div><div><dt>Specialization tags</dt><dd>{item.specialization_tags || "Not provided"}</dd></div><div><dt>Consultation fee</dt><dd>₹{Number(item.consultation_fee || 0).toLocaleString()}</dd></div><div><dt>Average duration</dt><dd>{item.avg_consult_duration_mins || 30} minutes</dd></div><div><dt>Teleconsult</dt><dd>{item.teleconsult_enabled ? "Enabled" : "Disabled"}</dd></div>{item.rejection_reason && <div><dt>Previous rejection reason</dt><dd>{item.rejection_reason}</dd></div>}</dl>
         </section>
         <aside className="panel verification-panel">
           <h2>Verification document</h2>
-          {item.verification_proof ? <a className="verification-file" href={item.verification_proof} target="_blank" rel="noreferrer"><FileText /><span><strong>Open verification proof</strong><small>Private Frappe file</small></span><ArrowRight /></a> : <EmptyState title="No document attached" description="verification_proof is empty on this Doctor record." />}
-          <IntegrationNotice title="Schema gap">There is no medical-registration field or rejection-reason field in Doctor. Those checks cannot be recorded without a backend schema change.</IntegrationNotice>
+          {item.verification_proof ? <a className="verification-file" href={absoluteFrappeUrl(item.verification_proof)} target="_blank" rel="noreferrer"><FileText /><span><strong>Open verification proof</strong><small>Private Frappe file · authentication required</small></span><ArrowRight /></a> : <EmptyState title="No document attached" description="No verification proof is attached to this Doctor record." />}
           <div className="approval-actions">
             <Button onClick={() => approve.mutate()} disabled={approve.isPending || item.approval_status === "Approved"}><CheckCircle2 /> {approve.isPending ? "Approving…" : "Approve doctor"}</Button>
             <Button variant="danger" onClick={() => setRejectOpen(true)} disabled={item.approval_status === "Rejected"}><XCircle /> Reject</Button>
           </div>
         </aside>
       </div>
-      <ConfirmDialog open={rejectOpen} title="Reject this doctor?" description="The current backend can only persist approval_status=Rejected." confirmLabel="Reject doctor" destructive busy={reject.isPending} confirmDisabled={!reason.trim()} onCancel={() => setRejectOpen(false)} onConfirm={() => reject.mutate()}>
+      <ConfirmDialog open={rejectOpen} title="Reject this doctor?" description="The reason is stored with the reviewer and review time, and shown to the doctor." confirmLabel="Reject doctor" destructive busy={reject.isPending} confirmDisabled={!reason.trim()} onCancel={() => setRejectOpen(false)} onConfirm={() => reject.mutate()}>
         <TextAreaField label="Rejection reason" value={reason} onChange={(event) => setReason(event.target.value)} required />
-        <IntegrationNotice>This value is not sent because no matching backend field or RPC exists.</IntegrationNotice>
       </ConfirmDialog>
     </>
   );
@@ -366,7 +320,7 @@ export function AdminAuditPage() {
     { key: "reason", header: "Reason", render: (row) => row.reason || "—" },
     { key: "time", header: "Event time", render: (row) => row.event_time || "—" }
   ];
-  return <><IntegrationNotice title="Controller mismatch">The current Appointment hook writes event_type “Status Update”, which is not a valid Appointment Audit Timeline option. It also watches nonexistent appointment fields.</IntegrationNotice><AdminTablePage eyebrow="Governance" title="Audit timeline" description="Review appointment lifecycle events and actors." queryKey="audit" queryFn={adminApi.timelines} columns={columns} searchText={(row) => `${row.appointment} ${row.event_type} ${row.actor_user} ${row.reason}`} /></>;
+  return <AdminTablePage eyebrow="Governance" title="Audit timeline" description="Review appointment lifecycle events and actors." queryKey="audit" queryFn={adminApi.timelines} columns={columns} searchText={(row) => `${row.appointment} ${row.event_type} ${row.actor_user} ${row.reason}`} />;
 }
 
 export function AdminTeleconsultsPage() {

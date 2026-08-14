@@ -73,7 +73,7 @@ export function GuestOnly({
   children: ReactNode;
 }) {
   const auth = useAuth();
-  if (auth.status === "restoring") return <LoadingPage label="Checking session" />;
+  if (auth.status === "restoring") return <LoadingPage label={`Checking ${portal} session`} />;
   if (auth.status === "authenticated" && auth.portal) {
     if (
       auth.portal === "doctor" &&

@@ -1,4 +1,5 @@
-import { createRecord, listRecords, updateRecord } from "./client";
+import { callRpc, createRecord, listRecords, updateRecord } from "./client";
+import { DEMO_MODE } from "./demo";
 import type {
   ListOptions,
   PatientConsentRecord
@@ -15,6 +16,12 @@ export const consentsApi = {
     patient: string,
     consentType: PatientConsentRecord["consent_type"]
   ) {
+    if (!DEMO_MODE) {
+      return callRpc<PatientConsentRecord>("soulplace.api.grant_consent", {
+        consent_type: consentType,
+        consent_version: import.meta.env.VITE_CONSENT_VERSION || "1.0"
+      });
+    }
     return createRecord<PatientConsentRecord>("Patient Consent Record", {
       patient,
       consent_type: consentType,
@@ -25,6 +32,9 @@ export const consentsApi = {
     });
   },
   revoke(name: string) {
+    if (!DEMO_MODE) {
+      return callRpc<PatientConsentRecord>("soulplace.api.revoke_consent", { name });
+    }
     return updateRecord<PatientConsentRecord>(
       "Patient Consent Record",
       name,
