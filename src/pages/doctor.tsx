@@ -67,6 +67,11 @@ function useDoctorAppointments() {
   });
 }
 
+export function doctorGreetingName(fullName = "") {
+  const nameWithoutTitle = fullName.trim().replace(/^dr\.?\s*/i, "");
+  return nameWithoutTitle.split(/\s+/)[0] || "Doctor";
+}
+
 export function DoctorDashboardPage() {
   const auth = useAuth();
   const query = useDoctorAppointments();
@@ -94,7 +99,7 @@ export function DoctorDashboardPage() {
       <section className="doctor-welcome">
         <div>
           <p className="eyebrow">Clinical workspace</p>
-          <h1>Good day, {auth.doctor?.full_name?.split(" ")[0]}</h1>
+          <h1>Good day, Dr. {doctorGreetingName(auth.doctor?.full_name)}</h1>
           <p>Here’s what needs your attention today.</p>
         </div>
         <div className="availability-pill">
@@ -675,7 +680,7 @@ export function DoctorProfilePage() {
           <FormField label="Specialty" value={form.specialty || ""} onChange={(event) => setForm((current) => ({ ...current, specialty: event.target.value }))} />
           <TextAreaField label="Specialization tags" value={form.specialization_tags || ""} onChange={(event) => setForm((current) => ({ ...current, specialization_tags: event.target.value }))} />
           <div className="form-grid two-column"><FormField label="Consultation fee" type="number" value={form.consultation_fee || ""} onChange={(event) => setForm((current) => ({ ...current, consultation_fee: Number(event.target.value) }))} /><FormField label="Average duration" type="number" value={form.avg_consult_duration_mins || ""} onChange={(event) => setForm((current) => ({ ...current, avg_consult_duration_mins: Number(event.target.value) }))} /></div>
-          <label className="toggle-field" style={{marginTop: "var(--space-2)", marginBottom: "var(--space-4)"}}><input type="checkbox" checked={form.teleconsult_enabled === 1} onChange={(event) => setForm((current) => ({ ...current, teleconsult_enabled: event.target.checked ? 1 : 0 }))} /><span /> Enable teleconsultations</label>
+          <label className="toggle-field profile-toggle-row"><input type="checkbox" checked={form.teleconsult_enabled === 1} onChange={(event) => setForm((current) => ({ ...current, teleconsult_enabled: event.target.checked ? 1 : 0 }))} /><span /> Enable teleconsultations</label>
           {mutation.isError && <ErrorState error={mutation.error} />}
           <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? "Saving…" : "Save profile"}</Button>
         </form></section>

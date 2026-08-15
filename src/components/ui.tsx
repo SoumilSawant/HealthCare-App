@@ -601,8 +601,10 @@ export function ConfirmDialog({
         </div>
       }
     >
-      <p>{description}</p>
-      {children}
+      <div className="confirm-dialog-content">
+        <p className="confirm-dialog-description">{description}</p>
+        {children ? <div className="confirm-dialog-fields">{children}</div> : null}
+      </div>
     </Modal>
   );
 }

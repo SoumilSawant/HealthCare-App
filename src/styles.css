@@ -240,6 +240,19 @@ svg {
     background 160ms ease;
 }
 
+.button > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.52rem;
+}
+
+.button > span > svg {
+  width: 1em;
+  height: 1em;
+  flex: 0 0 auto;
+}
+
 .button:hover:not(:disabled) {
   transform: translateY(-1px);
 }
@@ -1654,6 +1667,18 @@ tbody tr:last-child td {
   margin: 0;
 }
 
+.modal > header h2 {
+  min-width: 0;
+  padding-right: 0.75rem;
+  flex: 1;
+  font-size: 1.15rem;
+  line-height: 1.35;
+}
+
+.modal > header .icon-button {
+  flex: 0 0 auto;
+}
+
 .modal-body {
   padding: 1.25rem;
 }
@@ -1664,7 +1689,33 @@ tbody tr:last-child td {
 }
 
 .modal > footer .dialog-actions {
-  justify-content: flex-end;
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.modal > footer .dialog-actions .button {
+  width: 100%;
+  min-width: 0;
+}
+
+.confirm-dialog-content,
+.confirm-dialog-fields {
+  display: grid;
+  gap: 1rem;
+}
+
+.confirm-dialog-description {
+  max-width: 48ch;
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.confirm-dialog-fields > .field {
+  width: 100%;
 }
 
 .drawer {
@@ -2792,12 +2843,21 @@ tbody tr:last-child td {
 
 .booking-layout {
   display: grid;
+  min-width: 0;
+  align-items: start;
   grid-template-columns: minmax(0, 1fr) 300px;
   gap: 1.2rem;
 }
 
 .booking-form-panel {
+  display: flex;
+  min-width: 0;
   min-height: 540px;
+  flex-direction: column;
+}
+
+.booking-layout > .trust-panel {
+  min-width: 0;
 }
 
 .trust-panel > svg {
@@ -2994,12 +3054,23 @@ tbody tr:last-child td {
 }
 
 .sticky-actions {
-  display: flex;
+  display: grid;
+  width: 100%;
   margin-top: 1.5rem;
-  padding-top: 1rem;
-  justify-content: flex-end;
+  padding-top: 1.25rem;
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.7rem;
   border-top: 1px solid var(--border);
+}
+
+.sticky-actions > .button:last-child {
+  min-width: 0;
+  justify-self: end;
+}
+
+.sticky-actions > .button:only-child {
+  grid-column: 2;
 }
 
 .booking-review {
@@ -3730,7 +3801,19 @@ tbody tr:last-child td {
 }
 
 .request-card .card-actions {
+  display: grid;
   margin-top: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.request-card .card-actions .button {
+  width: 100%;
+}
+
+.request-card .card-actions .text-link {
+  grid-column: 1 / -1;
+  justify-self: start;
 }
 
 .patient-header {
@@ -4044,7 +4127,61 @@ tbody tr:last-child td {
 }
 
 .approval-actions {
-  margin-top: 1rem;
+  display: grid;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 1.25rem;
+  justify-content: center;
+  grid-template-columns: repeat(2, 148px);
+  align-items: stretch;
+}
+
+.approval-actions .button {
+  width: 100%;
+  min-width: 0;
+}
+
+.approval-actions .button > span {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.verification-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.clinical-layout .card-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.clinical-layout .card-actions .button {
+  width: 100%;
+}
+
+.drawer-actions {
+  display: grid;
+  width: 100%;
+  margin-top: 1.25rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.drawer-actions .button {
+  width: 100%;
+}
+
+.drawer-danger-actions {
+  display: flex;
+  margin-top: 1.5rem;
+  justify-content: flex-end;
+}
+
+.profile-toggle-row {
+  margin: 0.5rem 0 1rem;
 }
 
 .drawer-profile {
@@ -4410,6 +4547,29 @@ tbody tr:last-child td {
   }
   .doctor-review-actions {
     grid-template-columns: 1fr;
+  }
+  .modal > footer .dialog-actions,
+  .approval-actions,
+  .clinical-layout .card-actions,
+  .request-card .card-actions,
+  .drawer-actions {
+    grid-template-columns: 1fr;
+  }
+  .request-card .card-actions .text-link {
+    grid-column: auto;
+  }
+  .drawer-danger-actions .button {
+    width: 100%;
+  }
+  .sticky-actions {
+    grid-template-columns: 1fr;
+  }
+  .sticky-actions > .button,
+  .sticky-actions > .button:last-child {
+    width: 100%;
+    min-width: 0;
+    grid-column: auto;
+    justify-self: stretch;
   }
   .landing-page > section {
     margin-top: 7vh;
