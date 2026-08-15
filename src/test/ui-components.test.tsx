@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -34,7 +34,7 @@ describe("shared UI behavior", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it("keeps a modal field focused when its controlled value changes", () => {
+  it("keeps a modal field focused when its controlled value changes", async () => {
     function ModalForm() {
       const [reason, setReason] = useState("");
       return (
@@ -52,7 +52,8 @@ describe("shared UI behavior", () => {
     const field = screen.getByRole("textbox", { name: "Cancellation reason" });
     field.focus();
     fireEvent.change(field, { target: { value: "No longer available" } });
-    expect(field).toHaveFocus();
+    await waitFor(() => expect(field).toHaveFocus());
+    expect(field).toHaveValue("No longer available");
   });
 
   it("sorts data tables in both directions", () => {

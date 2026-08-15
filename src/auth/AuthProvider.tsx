@@ -9,7 +9,7 @@ import {
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { authApi } from "../api/auth";
-import { normalizeApiError } from "../api/client";
+import { AUTH_EXPIRED_EVENT, normalizeApiError } from "../api/client";
 import type { AuthSession, PortalRole } from "../types/domain";
 
 interface LoginCredentials {
@@ -61,6 +61,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const task = window.setTimeout(() => void restore(), 0);
     return () => window.clearTimeout(task);
   }, [restore]);
+
+  useEffect(() => {
+    const handleExpiredSession = () => {
+      queryClient.clear();
+      setSession(anonymousSession);
+      setError("Your session expired. Please sign in again.");
+    };
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleExpiredSession);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleExpiredSession);
+  }, [queryClient]);
 
   const login = useCallback(
     async ({ username, password, portal }: LoginCredentials) => {

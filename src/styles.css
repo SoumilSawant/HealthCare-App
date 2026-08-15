@@ -1381,6 +1381,10 @@ svg {
   line-height: 1.5;
 }
 
+.appointment-rejected-notice .button {
+  margin-top: 0.75rem;
+}
+
 .error-state {
   border: 1px solid #e5bab3;
   background: var(--rose-100);

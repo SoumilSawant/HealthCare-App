@@ -71,6 +71,7 @@ describe("secure portal RPC contracts", () => {
       "https://meet.google.com/abc-defg-hij"
     );
     await appointmentsApi.complete("APT-1");
+    await appointmentsApi.reject("APT-1", "Requested time no longer works");
     await appointmentsApi.reschedule("APT-1", "2026-09-01", "11:30", "Patient request");
     const bodies = vi.mocked(fetch).mock.calls
       .filter(([url]) => String(url).includes("soulplace.api."))
@@ -82,6 +83,11 @@ describe("secure portal RPC contracts", () => {
       meeting_link: "https://meet.google.com/abc-defg-hij"
     });
     expect(bodies).toContainEqual({ name: "APT-1", status: "Completed" });
+    expect(bodies).toContainEqual({
+      name: "APT-1",
+      reason: "Requested time no longer works",
+      status: "Cancelled"
+    });
     expect(bodies).toContainEqual({
       name: "APT-1",
       appointment_date: "2026-09-01",
