@@ -21,6 +21,7 @@ import { patientsApi } from "../api/patients";
 import { prescriptionsApi } from "../api/prescriptions";
 import { teleconsultApi } from "../api/teleconsult";
 import { googleMeetApi } from "../api/googleMeet";
+import { useEntityNames } from "../hooks/useEntityNames";
 import { GoogleMeetCard } from "../components/GoogleMeetCard";
 import {
   AppointmentCard,
@@ -143,10 +144,14 @@ export function DoctorRequestsPage() {
     },
     enabled: Boolean(appointments.data?.data.length)
   });
+  const [confirmTarget, setConfirmTarget] = useState<Appointment>();
+  const [gmeetLink, setGmeetLink] = useState("");
   const confirm = useMutation({
-    mutationFn: (name: string) => appointmentsApi.confirm(name),
+    mutationFn: () => appointmentsApi.confirm(confirmTarget?.name || "", gmeetLink),
     onSuccess: () => {
-      toast.notify("Appointment confirmed.");
+      toast.notify("Appointment request confirmed.");
+      setConfirmTarget(undefined);
+      setGmeetLink("");
       void queryClient.invalidateQueries({ queryKey: ["appointments", "doctor"] });
     }
   });
@@ -178,7 +183,7 @@ export function DoctorRequestsPage() {
                   <dl><div><dt>Date</dt><dd>{item.appointment_date}</dd></div><div><dt>Time</dt><dd>{item.appointment_time}</dd></div><div><dt>Format</dt><dd>{item.is_teleconsult ? "Teleconsult" : "In-person"}</dd></div></dl>
                   <div className="request-reason"><small>Reason for consultation</small><p>{item.symptoms || "Not provided"}</p></div>
                   <div className="card-actions">
-                    <Button disabled={confirm.isPending} onClick={() => confirm.mutate(item.name)}><CheckCircle2 /> Confirm request</Button>
+                    <Button onClick={() => setConfirmTarget(item)}><CheckCircle2 /> Confirm request</Button>
                     <Button variant="secondary" onClick={() => setDeclineTarget(item)}>Decline</Button>
                     <Link className="text-link" to={`/doctor/appointments/${item.name}`}>View details</Link>
                   </div>
@@ -190,6 +195,9 @@ export function DoctorRequestsPage() {
       <ConfirmDialog open={Boolean(declineTarget)} title="Decline this request?" description="A cancellation reason is required and will be written to Appointment.cancel_reason." confirmLabel="Decline request" destructive busy={decline.isPending} confirmDisabled={!reason.trim()} onCancel={() => setDeclineTarget(undefined)} onConfirm={() => decline.mutate()}>
         <TextAreaField label="Reason for declining" value={reason} onChange={(event) => setReason(event.target.value)} required />
       </ConfirmDialog>
+      <ConfirmDialog open={Boolean(confirmTarget)} title="Confirm appointment" description="Approve this appointment. For teleconsultations, please provide a Google Meet link." confirmLabel="Confirm" busy={confirm.isPending} confirmDisabled={confirmTarget?.is_teleconsult ? !gmeetLink.trim() : false} onCancel={() => setConfirmTarget(undefined)} onConfirm={() => confirm.mutate()}>
+        {confirmTarget?.is_teleconsult ? <FormField label="Google Meet Link" value={gmeetLink} onChange={(e) => setGmeetLink(e.target.value)} required placeholder="https://meet.google.com/..." /> : <p>Are you sure you want to confirm this in-person appointment?</p>}
+      </ConfirmDialog>
     </>
   );
 }
@@ -198,12 +206,13 @@ export function DoctorAppointmentsPage() {
   const query = useDoctorAppointments();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
+  const { getPatientName } = useEntityNames();
   const rows = (query.data?.data || []).filter((item) =>
     (!search || `${item.patient} ${item.symptoms}`.toLowerCase().includes(search.toLowerCase())) &&
     (!status || item.status === status)
   );
   const columns: Column<Appointment>[] = [
-    { key: "patient", header: "Patient", render: (row) => <strong>{row.patient}</strong> },
+    { key: "patient", header: "Patient", render: (row) => <strong>{getPatientName(row.patient)}</strong> },
     { key: "date", header: "Date & time", render: (row) => <span>{row.appointment_date}<small className="table-subtext">{row.appointment_time}</small></span> },
     { key: "type", header: "Format", render: (row) => row.is_teleconsult ? "Teleconsult" : "In-person" },
     { key: "status", header: "Status", render: (row) => <StatusBadge status={row.status} /> },
@@ -231,10 +240,21 @@ export function DoctorAppointmentDetailPage() {
   const appointment = useQuery({ queryKey: ["appointment", appointmentId], queryFn: () => appointmentsApi.get(appointmentId || ""), enabled: Boolean(appointmentId) });
   const patient = useQuery({ queryKey: ["patient", appointment.data?.patient], queryFn: () => patientsApi.get(appointment.data?.patient || ""), enabled: Boolean(appointment.data?.patient) });
   const session = useQuery({ queryKey: ["teleconsult", appointmentId], queryFn: () => teleconsultApi.list({ filters: [["appointment", "=", appointmentId || ""]], fields: ["*"], limitPageLength: 1 }), enabled: Boolean(appointment.data?.is_teleconsult) });
-  const statusMutation = useMutation({
-    mutationFn: (status: "Confirmed" | "Completed") => status === "Confirmed" ? appointmentsApi.confirm(appointmentId || "") : appointmentsApi.complete(appointmentId || ""),
-    onSuccess: (_, status) => {
-      toast.notify(`Appointment marked ${status.toLowerCase()}.`);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [gmeetLink, setGmeetLink] = useState("");
+  const confirmMutation = useMutation({
+    mutationFn: () => appointmentsApi.confirm(appointmentId || "", gmeetLink),
+    onSuccess: () => {
+      toast.notify("Appointment confirmed.");
+      setConfirmOpen(false);
+      void queryClient.invalidateQueries({ queryKey: ["appointment", appointmentId] });
+    },
+    onError: (error) => toast.notify(normalizeApiError(error).message)
+  });
+  const completeMutation = useMutation({
+    mutationFn: () => appointmentsApi.complete(appointmentId || ""),
+    onSuccess: () => {
+      toast.notify("Appointment marked completed.");
       void queryClient.invalidateQueries({ queryKey: ["appointment", appointmentId] });
     },
     onError: (error) => toast.notify(normalizeApiError(error).message)
@@ -270,12 +290,7 @@ export function DoctorAppointmentDetailPage() {
         <GoogleMeetCard
           audience="doctor"
           appointmentStatus={item.status}
-          session={session.data?.data[0]}
-          loading={session.isLoading}
-          configured={googleMeetApi.isConfigured()}
-          creating={createMeet.isPending}
-          error={session.error || createMeet.error}
-          onCreate={() => createMeet.mutate()}
+          gmeetLink={item.gmeet_link}
         />
       ) : null}
       <div className="clinical-layout">
@@ -283,8 +298,8 @@ export function DoctorAppointmentDetailPage() {
           <div className="patient-header"><span className="avatar avatar-profile">{patient.data?.name1?.charAt(0) || "P"}</span><div><p className="eyebrow">Patient</p><h2>{patient.data?.name1 || item.patient}</h2><p>{patient.data ? `${patient.data.age} years · ${patient.data.gender}` : "Loading profile"}</p></div></div>
           <dl className="detail-list"><div><dt>Reason</dt><dd>{item.symptoms || "Not provided"}</dd></div><div><dt>Format</dt><dd>{item.is_teleconsult ? "Teleconsult" : "In-person"}</dd></div><div><dt>Notes</dt><dd>{item.notes || "None"}</dd></div></dl>
           <div className="card-actions">
-            {item.status === "Pending" && <Button disabled={statusMutation.isPending} onClick={() => statusMutation.mutate("Confirmed")}>{statusMutation.isPending ? "Confirming…" : "Confirm appointment"}</Button>}
-            {item.status === "Confirmed" && <Button disabled={statusMutation.isPending} onClick={() => statusMutation.mutate("Completed")}>{statusMutation.isPending ? "Updating…" : "Mark completed"}</Button>}
+            {item.status === "Pending" && <Button disabled={confirmMutation.isPending} onClick={() => setConfirmOpen(true)}>Confirm appointment</Button>}
+            {item.status === "Confirmed" && <Button disabled={completeMutation.isPending} onClick={() => completeMutation.mutate()}>{completeMutation.isPending ? "Updating…" : "Mark completed"}</Button>}
           </div>
         </section>
         <aside className="panel">
@@ -293,6 +308,9 @@ export function DoctorAppointmentDetailPage() {
           <p className="text-secondary">Patient records in this workspace are limited to appointments assigned to you.</p>
         </aside>
       </div>
+      <ConfirmDialog open={confirmOpen} title="Confirm appointment" description="Approve this appointment. For teleconsultations, please provide a Google Meet link." confirmLabel="Confirm" busy={confirmMutation.isPending} confirmDisabled={item.is_teleconsult ? !gmeetLink.trim() : false} onCancel={() => setConfirmOpen(false)} onConfirm={() => confirmMutation.mutate()}>
+        {item.is_teleconsult ? <FormField label="Google Meet Link" value={gmeetLink} onChange={(e) => setGmeetLink(e.target.value)} required placeholder="https://meet.google.com/..." /> : <p>Are you sure you want to confirm this in-person appointment?</p>}
+      </ConfirmDialog>
     </>
   );
 }

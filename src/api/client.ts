@@ -79,7 +79,7 @@ async function getCsrfToken(): Promise<string | undefined> {
   if (csrfToken) return csrfToken;
   try {
     const response = await fetch(
-      `${FRAPPE_BASE_URL}/api/method/frappe.auth.get_csrf_token`,
+      `${FRAPPE_BASE_URL}/api/method/soulplace.auth.get_csrf_token`,
       { credentials: "include" }
     );
     if (!response.ok) return undefined;
@@ -93,7 +93,6 @@ async function getCsrfToken(): Promise<string | undefined> {
 
 export interface RequestOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
-  skipCsrf?: boolean;
 }
 
 export async function request<T>(
@@ -107,7 +106,7 @@ export async function request<T>(
   if (!isFormData && options.body !== undefined) {
     headers.set("Content-Type", "application/json");
   }
-  if (!["GET", "HEAD"].includes(method) && !options.skipCsrf) {
+  if (!["GET", "HEAD"].includes(method)) {
     const token = await getCsrfToken();
     if (token) headers.set("X-Frappe-CSRF-Token", token);
   }
@@ -255,13 +254,11 @@ export function deleteRecord(doctype: string, name: string): Promise<void> {
 
 export function callRpc<T>(
   method: string,
-  args: Record<string, unknown> = {},
-  allowGuest = false
+  args: Record<string, unknown> = {}
 ): Promise<T> {
   return request<T>(`/api/method/${method}`, {
     method: "POST",
-    body: args,
-    skipCsrf: allowGuest
+    body: args
   });
 }
 

@@ -74,8 +74,7 @@ export const authApi = {
       : `${normalizeIndianPhone(phoneOrEmail)}@soulplace.local`;
     return callRpc<PatientLoginResponse>(
       "soulplace.auth.patient_login",
-      { usr, pwd: password },
-      true
+      { usr, pwd: password }
     );
   },
 
@@ -93,8 +92,7 @@ export const authApi = {
     }
     return request<LoginResponse>("/api/method/login", {
       method: "POST",
-      body: { usr: username, pwd: password },
-      skipCsrf: true
+      body: { usr: username, pwd: password }
     });
   },
 
@@ -105,7 +103,7 @@ export const authApi = {
       return;
     }
     try {
-      await request("/api/method/logout", { method: "POST" });
+      await request("/api/method/frappe.handler.logout", { method: "POST" });
     } finally {
       clearSessionTokens();
     }
@@ -115,7 +113,7 @@ export const authApi = {
     if (DEMO_MODE) {
       return Promise.resolve(demoRestoreSession().username ?? "Guest");
     }
-    return callRpc<any>("soulplace.api.get_portal_identity", {}, true).then(res => res.username || "Guest").catch(() => "Guest");
+    return callRpc<any>("soulplace.api.get_portal_identity", {}).then(res => res.username || "Guest").catch(() => "Guest");
   },
 
   registerPatient(input: {
@@ -153,8 +151,7 @@ export const authApi = {
     }
     return callRpc<PatientLoginResponse>(
       "soulplace.auth.register_patient",
-      validated,
-      true
+      validated
     );
   },
 
@@ -184,15 +181,14 @@ export const authApi = {
     });
     return request<{ success: boolean; status: "Pending" }>(
       "/api/method/soulplace.api.register_doctor",
-      { method: "POST", body, skipCsrf: true }
+      { method: "POST", body }
     );
   },
 
   requestPatientOtp(phoneno: string, purpose: "login" | "reset" = "login") {
     return callRpc<{ sent: boolean; expires_in: number }>(
       "soulplace.auth.request_patient_otp",
-      { phoneno: normalizeIndianPhone(phoneno), purpose },
-      true
+      { phoneno: normalizeIndianPhone(phoneno), purpose }
     );
   },
 
@@ -204,32 +200,37 @@ export const authApi = {
   }) {
     return callRpc<PatientLoginResponse & { password_reset?: boolean }>(
       "soulplace.auth.verify_patient_otp",
-      { ...input, phoneno: normalizeIndianPhone(input.phoneno) },
-      true
+      { ...input, phoneno: normalizeIndianPhone(input.phoneno) }
     );
   },
 
   requestEmailPasswordReset(email: string) {
     return callRpc<void>(
       "frappe.core.doctype.user.user.reset_password",
-      { user: normalizeEmail(email) },
-      true
+      { user: normalizeEmail(email) }
     );
   },
+  reapplyDoctor(input: { verificationFileBase64: string; verificationFileName: string }) {
+    return callRpc<void>(
+      "soulplace.auth.reapply_doctor",
+      input
+    );
   },
 
-  reapplyDoctor(input: { verificationFileBase64: string; verificationFileName: string }) {
-    return callRpc<{ success: boolean; message: string }>(
-      "soulplace.auth.reapply_doctor",
-      input,
-      true
+  updatePortalPassword(password: string, key: string) {
+    return callRpc<void>(
+      "frappe.core.doctype.user.user.update_password",
+      { key, password }
     );
+  },
+  sendPatientResetLink(user: string) {
+    return callRpc<{ success: boolean }>("soulplace.auth.patient_send_reset_link", { user });
   },
 
   async restore(): Promise<AuthSession> {
     if (DEMO_MODE) return demoRestoreSession();
     try {
-      const identity = await callRpc<any>("soulplace.api.get_portal_identity", {}, true);
+      const identity = await callRpc<any>("soulplace.api.get_portal_identity", {});
       
       if (identity.status === "anonymous" || !identity.username || identity.username === "Guest") {
         return { status: "anonymous", roles: [] };

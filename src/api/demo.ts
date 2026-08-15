@@ -433,7 +433,7 @@ export function demoUpdateRecord<T extends FrappeDocument>(
   collection[index] = updated;
 
   if (
-    doctype === "Appointment" &&
+    doctype === "Patient Appointment" &&
     recordValue(previous, "status") !== recordValue(updated, "status")
   ) {
     const auditEvent: AppointmentAuditTimeline = {

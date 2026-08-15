@@ -74,6 +74,7 @@ export interface Appointment extends FrappeDocument {
   teleconsult_session_id?: string;
   cancel_reason?: string;
   rescheduled_from?: FrappeName;
+  gmeet_link?: string;
 }
 
 export interface Consultation extends FrappeDocument {

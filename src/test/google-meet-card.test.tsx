@@ -19,7 +19,7 @@ describe("GoogleMeetCard", () => {
       <GoogleMeetCard
         audience="patient"
         appointmentStatus="Confirmed"
-        session={session}
+        gmeetLink={session.meeting_link}
       />
     );
 
@@ -35,7 +35,7 @@ describe("GoogleMeetCard", () => {
       <GoogleMeetCard
         audience="patient"
         appointmentStatus="Pending"
-        session={session}
+        gmeetLink={session.meeting_link}
       />
     );
 
@@ -76,7 +76,7 @@ describe("GoogleMeetCard", () => {
       <GoogleMeetCard
         audience="doctor"
         appointmentStatus="Completed"
-        session={{ ...session, session_status: "Completed" }}
+        gmeetLink={session.meeting_link}
       />
     );
 
@@ -89,7 +89,7 @@ describe("GoogleMeetCard", () => {
       <GoogleMeetCard
         audience="patient"
         appointmentStatus="Confirmed"
-        session={{ ...session, meeting_link: "https://example.com/meeting" }}
+        gmeetLink="https://example.com/meeting"
       />
     );
 

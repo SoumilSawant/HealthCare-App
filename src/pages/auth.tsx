@@ -537,7 +537,6 @@ export function DoctorRegisterPage() {
         consent_version: import.meta.env.VITE_CONSENT_VERSION || "1.0",
         verification
       });
-      });
       await auth.restore();
       toast.notify("Application submitted for review.");
       navigate("/doctor/pending", { replace: true });
@@ -654,18 +653,18 @@ export function DoctorPendingPage() {
           setReapplyFile(null);
           await auth.restore();
         } catch (e) {
-          toast.error("Failed to submit re-application", normalizeApiError(e));
+          toast.notify("Failed to submit re-application", { description: normalizeApiError(e).message });
         } finally {
           setBusy(false);
         }
       };
       reader.onerror = () => {
-        toast.error("Failed to read the file");
+        toast.notify("Failed to read the file");
         setBusy(false);
       };
       reader.readAsDataURL(reapplyFile);
     } catch (e) {
-      toast.error("Failed to process file", normalizeApiError(e));
+      toast.notify("Failed to process file", { description: normalizeApiError(e).message });
       setBusy(false);
     }
   };
@@ -684,21 +683,20 @@ export function DoctorPendingPage() {
       <div className={`approval-state approval-${status.toLowerCase()}`}>
         {status === "Rejected" ? <LockKeyhole /> : <Clock3 />}
         <div>
-          <StatusLine
-            complete
-            title="Application submitted"
-            detail="Your Doctor record is on file."
-          />
-          <StatusLine
-            complete={status === "Rejected"}
-            active={status === "Pending"}
-            title="Credential review"
-            detail={
-              status === "Rejected"
-                ? "Review completed"
-                : "Verification is in progress"
-            }
-          />
+          {status !== "Rejected" && (
+            <>
+              <StatusLine
+                complete
+                title="Application submitted"
+                detail="Your Doctor record is on file."
+              />
+              <StatusLine
+                active={status === "Pending"}
+                title="Credential review"
+                detail="Verification is in progress"
+              />
+            </>
+          )}
           <StatusLine
             active={status === "Rejected"}
             title={status === "Rejected" ? "Rejected" : "Access approval"}
@@ -711,18 +709,16 @@ export function DoctorPendingPage() {
         </div>
       </div>
       {status === "Rejected" && (
-        <div style={{ marginTop: "var(--space-6)", padding: "var(--space-6)", backgroundColor: "var(--surface-sunken)", borderRadius: "var(--radius-xl)" }}>
-          <h3 style={{ fontSize: "var(--text-sm)", marginBottom: "var(--space-4)" }}>Submit new verification document</h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "1rem", padding: "1rem", backgroundColor: "var(--sage-50)", borderRadius: "12px" }}>
+          <h3 style={{ fontSize: "0.85rem", margin: 0 }}>Submit new verification document</h3>
           <FileUpload
             label="Verification proof (PDF or Image)"
-            value={reapplyFile}
-            onChange={setReapplyFile}
+            value={reapplyFile?.name}
+            onFile={setReapplyFile}
             accept=".pdf,.jpg,.jpeg,.png"
-            required
           />
           <Button 
-            className="w-full" 
-            style={{ marginTop: "var(--space-4)" }}
+            style={{ width: "100%", justifyContent: "center" }}
             disabled={!reapplyFile || busy} 
             onClick={() => void handleReapply()}
           >
@@ -730,8 +726,8 @@ export function DoctorPendingPage() {
           </Button>
         </div>
       )}
-      <div style={{ display: "flex", gap: "var(--space-4)", marginTop: "var(--space-6)" }}>
-        <Button onClick={() => void refresh()} disabled={busy} icon={<RefreshCw />} style={{ flex: 1 }}>
+      <div style={{ display: "flex", gap: "0.75rem", marginTop: "1rem" }}>
+        <Button onClick={() => void refresh()} disabled={busy} icon={<RefreshCw />} style={{ flex: 1, justifyContent: "center" }}>
           {busy ? "Refreshing…" : "Refresh approval status"}
         </Button>
         <Button variant="ghost" onClick={() => void auth.logout()}>

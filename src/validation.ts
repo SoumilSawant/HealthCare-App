@@ -263,7 +263,7 @@ export function validateAppointmentBooking<T extends {
 
 export function validateCancellation(name: unknown, reason: unknown) {
   return {
-    name: text(name, "name", "Appointment", { required: true, max: 140 }),
+    name: text(name, "name", "Patient Appointment", { required: true, max: 140 }),
     reason: text(reason, "reason", "Cancellation reason", {
       required: true,
       min: 3,
@@ -279,7 +279,7 @@ export function validateReschedule(
   reason: unknown
 ) {
   return {
-    name: text(name, "name", "Appointment", { required: true, max: 140 }),
+    name: text(name, "name", "Patient Appointment", { required: true, max: 140 }),
     appointment_date: isoDate(appointmentDate, "appointment_date"),
     appointment_time: time(appointmentTime, "appointment_time"),
     reason: text(reason, "reason", "Reschedule reason", { max: 1000 })
@@ -389,7 +389,7 @@ export function validateGoogleMeet(appointment: unknown, meetingId: unknown, mee
     fail("meeting_link", "Enter a valid https://meet.google.com meeting link.");
   }
   return {
-    appointment: text(appointment, "appointment", "Appointment", { required: true, max: 140 }),
+    appointment: text(appointment, "appointment", "Patient Appointment", { required: true, max: 140 }),
     meeting_id: text(meetingId, "meeting_id", "Meeting identifier", { required: true, max: 500 }),
     meeting_link: link
   };
@@ -408,7 +408,7 @@ export function validateConsultation(values: Record<string, unknown>) {
   ];
   const result: Record<string, unknown> = {};
   if ("name" in values) result.name = text(values.name, "name", "Consultation", { required: true, max: 140 });
-  if ("appointment" in values) result.appointment = text(values.appointment, "appointment", "Appointment", { required: true, max: 140 });
+  if ("appointment" in values) result.appointment = text(values.appointment, "appointment", "Patient Appointment", { required: true, max: 140 });
   if (!result.name && !result.appointment) fail("appointment", "Appointment is required.");
   for (const field of allowed) {
     if (field in values) result[field] = boundedText(values[field], field, field.replaceAll("_", " "), 10_000);

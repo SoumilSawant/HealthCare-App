@@ -6,7 +6,7 @@ import { Button, StatusBadge } from "./ui";
 export function GoogleMeetCard({
   audience,
   appointmentStatus,
-  session,
+  gmeetLink,
   loading,
   creating,
   configured = true,
@@ -15,19 +15,18 @@ export function GoogleMeetCard({
 }: {
   audience: "patient" | "doctor";
   appointmentStatus: AppointmentStatus;
-  session?: TeleconsultSession;
+  gmeetLink?: string;
   loading?: boolean;
   creating?: boolean;
   configured?: boolean;
   error?: unknown;
   onCreate?: () => void;
 }) {
-  const meetingLink = session?.meeting_link;
+  const meetingLink = gmeetLink;
   const isMeet = isGoogleMeetLink(meetingLink);
   const canJoin =
     isMeet &&
-    appointmentStatus === "Confirmed" &&
-    ["Created", "Live"].includes(session?.session_status || "");
+    appointmentStatus === "Confirmed";
   const canCreate =
     audience === "doctor" && appointmentStatus === "Confirmed" && !meetingLink;
   const errorMessage = error instanceof Error ? error.message : undefined;
@@ -70,7 +69,6 @@ export function GoogleMeetCard({
               {meetingLink ? "Your meeting room is ready" : "Private video room"}
             </h2>
           </div>
-          {session && <StatusBadge status={session.session_status} />}
         </div>
         <p>{guidance}</p>
         <div className="meet-privacy-note">

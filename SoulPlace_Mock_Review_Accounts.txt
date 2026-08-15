@@ -1,0 +1,100 @@
+SOULPLACE LOCAL REVIEW ACCOUNTS
+===============================
+
+DEVELOPMENT / LOCAL REVIEW ONLY
+Do not deploy these accounts or reuse this password in staging or production.
+All names and contact details below are fictional.
+
+Shared password for every account: 1234567890
+
+PATIENT PORTAL ACCOUNTS
+-----------------------
+1. Aarav Mehta
+   Login: aarav.mehta.review@example.com
+   Phone: 9000001101
+   Age/Gender: 29 / Male
+   Language: English
+
+2. Meera Iyer
+   Login: meera.iyer.review@example.com
+   Phone: 9000001102
+   Age/Gender: 34 / Female
+   Language: English
+
+3. Rohan Patel
+   Login: rohan.patel.review@example.com
+   Phone: 9000001103
+   Age/Gender: 41 / Male
+   Language: Hindi
+
+4. Ananya Sharma
+   Login: ananya.sharma.review@example.com
+   Phone: 9000001104
+   Age/Gender: 26 / Female
+   Language: Marathi
+
+5. Ishaan Verma
+   Login: ishaan.verma.review@example.com
+   Phone: 9000001105
+   Age/Gender: 32 / Male
+   Language: Hindi
+
+6. Kavya Nair
+   Login: kavya.nair.review@example.com
+   Phone: 9000001106
+   Age/Gender: 38 / Female
+   Language: English
+
+DOCTOR PORTAL ACCOUNTS
+----------------------
+All four doctors are approved, active, teleconsult-enabled, and have appointment
+slots from Monday to Saturday at 09:00, 10:00, 11:00, 14:00, 15:00, 16:00 and 18:00.
+
+1. Dr. Aditi Rao — Clinical Psychology
+   Login: aditi.rao.review@example.com
+   Phone: 9000003101
+   Registration: SP-REVIEW-CP-1001
+   Fee/Duration: INR 1200 / 45 minutes
+
+2. Dr. Vikram Menon — Psychiatry
+   Login: vikram.menon.review@example.com
+   Phone: 9000003102
+   Registration: SP-REVIEW-PSY-1002
+   Fee/Duration: INR 1600 / 30 minutes
+
+3. Dr. Neha Kapoor — Counselling Psychology
+   Login: neha.kapoor.review@example.com
+   Phone: 9000003103
+   Registration: SP-REVIEW-CP-1003
+   Fee/Duration: INR 1000 / 45 minutes
+
+4. Dr. Arjun Desai — Psychotherapy
+   Login: arjun.desai.review@example.com
+   Phone: 9000003104
+   Registration: SP-REVIEW-PT-1004
+   Fee/Duration: INR 1400 / 60 minutes
+
+5. Dr. Sana Qureshi — Clinical Psychology
+   Login: sana.qureshi.review@example.com
+   Phone: 9000003105
+   Registration: SP-REVIEW-CP-1005
+   Fee/Duration: INR 1300 / 45 minutes
+
+6. Dr. Rahul Banerjee — Child and Adolescent Psychiatry
+   Login: rahul.banerjee.review@example.com
+   Phone: 9000003106
+   Registration: SP-REVIEW-CAP-1006
+   Fee/Duration: INR 1800 / 45 minutes
+
+HOW A TEAMMATE CAN ADD OR REFRESH THE SAME DATA
+------------------------------------------------
+1. Ensure the latest SoulPlace backend code containing soulplace/review_seed.py
+   is installed in their frappe-bench.
+2. Open Terminal and enter their frappe-bench directory.
+3. Run:
+
+   bench --site soulplace.localhost execute soulplace.review_seed.seed_review_accounts --kwargs '{"password":"4321"}'
+
+Replace soulplace.localhost if their local Frappe site has a different name.
+The command is idempotent: running it again updates these review profiles and
+passwords instead of intentionally creating another copy.

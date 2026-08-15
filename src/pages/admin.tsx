@@ -17,6 +17,7 @@ import {
 import { adminApi } from "../api/admin";
 import { absoluteFrappeUrl } from "../api/client";
 import { doctorsApi } from "../api/doctors";
+import { useEntityNames } from "../hooks/useEntityNames";
 import {
   ConfirmDialog,
   DataTable,
@@ -272,10 +273,11 @@ export function AdminAppointmentsPage() {
   const [date, setDate] = useState("");
   const [doctor, setDoctor] = useState("");
   const [patient, setPatient] = useState("");
+  const { getDoctorName, getPatientName } = useEntityNames();
   const columns: Column<Appointment>[] = [
     { key: "id", header: "Appointment", render: (row) => <strong>{row.name}</strong>, sortValue: (row) => row.name },
-    { key: "patient", header: "Patient", render: (row) => row.patient, sortValue: (row) => row.patient },
-    { key: "doctor", header: "Doctor", render: (row) => row.doctor, sortValue: (row) => row.doctor },
+    { key: "patient", header: "Patient", render: (row) => getPatientName(row.patient), sortValue: (row) => row.patient },
+    { key: "doctor", header: "Doctor", render: (row) => getDoctorName(row.doctor), sortValue: (row) => row.doctor },
     { key: "date", header: "Date & time", render: (row) => <span>{row.appointment_date}<small className="table-subtext">{row.appointment_time}</small></span>, sortValue: (row) => `${row.appointment_date} ${row.appointment_time}` },
     { key: "format", header: "Format", render: (row) => row.is_teleconsult ? "Teleconsult" : "In-person" },
     { key: "status", header: "Status", render: (row) => <StatusBadge status={row.status} />, sortValue: (row) => row.status }
@@ -306,10 +308,11 @@ export function AdminAppointmentsPage() {
 }
 
 export function AdminConsultationsPage() {
+  const { getDoctorName } = useEntityNames();
   const columns: Column<Consultation>[] = [
     { key: "id", header: "Consultation", render: (row) => <strong>{row.name}</strong> },
     { key: "appointment", header: "Appointment", render: (row) => row.appointment },
-    { key: "doctor", header: "Doctor", render: (row) => row.doctor },
+    { key: "doctor", header: "Doctor", render: (row) => getDoctorName(row.doctor) },
     { key: "complaint", header: "Chief complaint", render: (row) => row.chief_complaint || "—" },
     { key: "followup", header: "Follow-up", render: (row) => row.follow_up_date || "—" }
   ];
@@ -327,8 +330,9 @@ export function AdminPrescriptionsPage() {
 }
 
 export function AdminConsentsPage() {
+  const { getPatientName } = useEntityNames();
   const columns: Column<PatientConsentRecord>[] = [
-    { key: "patient", header: "Patient", render: (row) => <strong>{row.patient}</strong> },
+    { key: "patient", header: "Patient", render: (row) => <strong>{getPatientName(row.patient)}</strong> },
     { key: "type", header: "Consent type", render: (row) => row.consent_type },
     { key: "version", header: "Version", render: (row) => row.consent_version || "—" },
     { key: "source", header: "Source", render: (row) => row.capture_source },
@@ -351,10 +355,11 @@ export function AdminAuditPage() {
 }
 
 export function AdminTeleconsultsPage() {
+  const { getDoctorName, getPatientName } = useEntityNames();
   const columns: Column<TeleconsultSession>[] = [
     { key: "session", header: "Session", render: (row) => <strong>{row.name}</strong> },
     { key: "appointment", header: "Appointment", render: (row) => row.appointment },
-    { key: "people", header: "Doctor / patient", render: (row) => <span>{row.practitioner}<small className="table-subtext">{row.patient}</small></span> },
+    { key: "people", header: "Doctor / patient", render: (row) => <span>{getDoctorName(row.practitioner)}<small className="table-subtext">{getPatientName(row.patient)}</small></span> },
     { key: "provider", header: "Provider", render: (row) => row.provider },
     { key: "time", header: "Start", render: (row) => row.start_time || "—" },
     { key: "status", header: "Status", render: (row) => <StatusBadge status={row.session_status} /> }

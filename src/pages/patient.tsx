@@ -40,6 +40,7 @@ import { doctorsApi } from "../api/doctors";
 import { patientsApi } from "../api/patients";
 import { prescriptionsApi } from "../api/prescriptions";
 import { teleconsultApi } from "../api/teleconsult";
+import { useEntityNames } from "../hooks/useEntityNames";
 import { GoogleMeetCard } from "../components/GoogleMeetCard";
 import { createRecord, listRecords, deleteRecord } from "../api/client";
 import {
@@ -66,6 +67,7 @@ import {
 import { UtilityLinks } from "../components/Shells";
 import type {
   Appointment,
+  Consultation
 } from "../types/domain";
 
 function usePatientAppointments() {
@@ -639,6 +641,7 @@ export function BookingConfirmedPage() {
 export function PatientAppointmentsPage() {
   const query = usePatientAppointments();
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
+  const { getDoctorName } = useEntityNames();
   const now = new Date().toISOString().slice(0, 10);
   const rows = (query.data?.data || []).filter((appointment) =>
     tab === "upcoming"
@@ -666,6 +669,7 @@ export function PatientAppointmentsPage() {
               <AppointmentCard
                 key={appointment.name}
                 appointment={appointment}
+                doctorName={getDoctorName(appointment.doctor)}
                 actions={<Link className="text-link" to={`/patient/appointments/${appointment.name}`}>View details <ArrowRight /></Link>}
               />
             ))}
@@ -683,6 +687,7 @@ export function PatientAppointmentDetailPage() {
   const { appointmentId } = useParams();
   const toast = useToast();
   const queryClient = useQueryClient();
+  const { getDoctorName } = useEntityNames();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -693,6 +698,7 @@ export function PatientAppointmentDetailPage() {
     queryFn: () => appointmentsApi.get(appointmentId || ""),
     enabled: Boolean(appointmentId)
   });
+  const doctor = useQuery({ queryKey: ["doctor", appointment.data?.doctor], queryFn: () => doctorsApi.get(appointment.data?.doctor || ""), enabled: Boolean(appointment.data?.doctor) });
   const timeline = useQuery({
     queryKey: ["appointment-timeline", appointmentId],
     queryFn: () => appointmentsApi.timeline(appointmentId || ""),
@@ -728,7 +734,6 @@ export function PatientAppointmentDetailPage() {
     return <ErrorState error={new Error("You do not have access to this appointment.")} />;
   }
   const item = appointment.data;
-  const session = teleconsult.data?.data[0];
   return (
     <>
       <Breadcrumbs items={[{ label: "Appointments", to: "/patient/appointments" }, { label: item.name }]} />
@@ -737,15 +742,20 @@ export function PatientAppointmentDetailPage() {
         <GoogleMeetCard
           audience="patient"
           appointmentStatus={item.status}
-          session={session}
-          loading={teleconsult.isLoading}
-          error={teleconsult.error}
+          gmeetLink={item.gmeet_link}
         />
       ) : null}
-      <div className="detail-grid">
-        <section className="panel detail-card">
+      <div className="clinical-layout">
+        <section className="panel">
+          <div className="patient-header">
+            <div className="avatar avatar-doctor">{doctor.data?.full_name?.charAt(0) || "D"}</div>
+            <div>
+              <p className="eyebrow">Doctor</p>
+              <h2>{getDoctorName(item.doctor)}</h2>
+              <p>{doctor.data?.specialty || "Specialty loading"}</p>
+            </div>
+          </div>
           <dl className="detail-list">
-            <div><dt>Doctor</dt><dd>{item.doctor}</dd></div>
             <div><dt>Date</dt><dd>{item.appointment_date}</dd></div>
             <div><dt>Time</dt><dd>{item.appointment_time}</dd></div>
             <div><dt>Consultation type</dt><dd>{item.is_teleconsult ? "Teleconsult" : "In-person"}</dd></div>
@@ -873,7 +883,7 @@ export function PatientPrescriptionsPage() {
 const moodQuestions = [
   "Over the last two weeks, how often have you felt little interest or pleasure in doing things?",
   "How often have you felt down, low, or without hope?",
-  "How often have worry or anxious thoughts felt difficult to control?",
+  "How often have you felt worry or anxious thoughts felt difficult to control?",
   "How often have you had trouble relaxing or sleeping well?",
   "How supported and connected have you felt to people you trust?"
 ];
@@ -960,6 +970,8 @@ const wellnessResources = [
 ];
 
 export function ResourcesPage() {
+  const auth = useAuth();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const categories = Array.from(new Set(wellnessResources.map((item) => item.category)));

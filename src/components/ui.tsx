@@ -440,6 +440,17 @@ export function Modal({
     const focusable = () =>
       Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(focusableSelector) || []);
     window.requestAnimationFrame(() => focusable()[0]?.focus());
+    return () => {
+      previouslyFocused?.focus();
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const focusableSelector =
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const focusable = () =>
+      Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(focusableSelector) || []);
     const close = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -461,7 +472,6 @@ export function Modal({
     document.addEventListener("keydown", close);
     return () => {
       document.removeEventListener("keydown", close);
-      previouslyFocused?.focus();
     };
   }, [open, onClose]);
   if (!open) return null;
@@ -505,6 +515,15 @@ export function Drawer({
     const selector = 'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
     const elements = () => Array.from(drawerRef.current?.querySelectorAll<HTMLElement>(selector) || []);
     window.requestAnimationFrame(() => elements()[0]?.focus());
+    return () => {
+      previouslyFocused?.focus();
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const selector = 'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const elements = () => Array.from(drawerRef.current?.querySelectorAll<HTMLElement>(selector) || []);
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -526,7 +545,6 @@ export function Drawer({
     document.addEventListener("keydown", handleKey);
     return () => {
       document.removeEventListener("keydown", handleKey);
-      previouslyFocused?.focus();
     };
   }, [open, onClose]);
   if (!open) return null;
@@ -965,6 +983,11 @@ export function AppointmentCard({
           <StatusBadge status={appointment.status} />
         </div>
         {appointment.symptoms && <p className="clamp">{appointment.symptoms}</p>}
+        {appointment.gmeet_link && (
+          <div className="gmeet-link-box">
+            <strong>Meeting link:</strong> <a className="text-link" href={appointment.gmeet_link} target="_blank" rel="noopener noreferrer">{appointment.gmeet_link}</a>
+          </div>
+        )}
         {actions && <div className="card-actions">{actions}</div>}
       </div>
     </article>

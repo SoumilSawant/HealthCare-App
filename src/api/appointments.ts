@@ -36,7 +36,7 @@ export const appointmentsApi = {
         limit: options?.limitPageLength ?? 100
       }).then((data) => ({ data }));
     }
-    return listRecords<Appointment>("Appointment", {
+    return listRecords<Appointment>("Patient Appointment", {
       fields: ["*"],
       ...options
     });
@@ -45,10 +45,10 @@ export const appointmentsApi = {
     if (!DEMO_MODE) {
       return callRpc<Appointment>("soulplace.api.get_portal_appointment", { name });
     }
-    return getRecord<Appointment>("Appointment", name);
+    return getRecord<Appointment>("Patient Appointment", name);
   },
   create(values: Omit<Partial<Appointment>, "name">) {
-    return createRecord<Appointment>("Appointment", values);
+    return createRecord<Appointment>("Patient Appointment", values);
   },
   book(
     values: Omit<Partial<Appointment>, "name" | "patient" | "status">,
@@ -56,7 +56,7 @@ export const appointmentsApi = {
   ) {
     const validated = validateAppointmentBooking(values, consents);
     if (DEMO_MODE) {
-      return createRecord<Appointment>("Appointment", {
+      return createRecord<Appointment>("Patient Appointment", {
         ...validated,
         patient: "PAT-DEMO-001",
         status: "Pending"
@@ -75,20 +75,20 @@ export const appointmentsApi = {
   },
   cancel(name: string, reason: string) {
     const validated = validateCancellation(name, reason);
-    if (DEMO_MODE) return updateRecord<Appointment>("Appointment", validated.name, { status: "Cancelled", cancel_reason: validated.reason });
+    if (DEMO_MODE) return updateRecord<Appointment>("Patient Appointment", validated.name, { status: "Cancelled", cancel_reason: validated.reason });
     return callRpc<Appointment>("soulplace.api.update_appointment_status", { ...validated, status: "Cancelled" });
   },
-  confirm(name: string) {
-    if (DEMO_MODE) return updateRecord<Appointment>("Appointment", name, { status: "Confirmed" });
-    return callRpc<Appointment>("soulplace.api.update_appointment_status", { name, status: "Confirmed" });
+  confirm(name: string, gmeet_link?: string) {
+    if (DEMO_MODE) return updateRecord<Appointment>("Patient Appointment", name, { status: "Confirmed", ...(gmeet_link && { gmeet_link }) });
+    return callRpc<Appointment>("soulplace.api.update_appointment_status", { name, status: "Confirmed", gmeet_link });
   },
   complete(name: string) {
-    if (DEMO_MODE) return updateRecord<Appointment>("Appointment", name, { status: "Completed" });
+    if (DEMO_MODE) return updateRecord<Appointment>("Patient Appointment", name, { status: "Completed" });
     return callRpc<Appointment>("soulplace.api.update_appointment_status", { name, status: "Completed" });
   },
   reschedule(name: string, appointment_date: string, appointment_time: string, reason = "") {
     const validated = validateReschedule(name, appointment_date, appointment_time, reason);
-    if (DEMO_MODE) return updateRecord<Appointment>("Appointment", validated.name, { appointment_date: validated.appointment_date, appointment_time: validated.appointment_time });
+    if (DEMO_MODE) return updateRecord<Appointment>("Patient Appointment", validated.name, { appointment_date: validated.appointment_date, appointment_time: validated.appointment_time });
     return callRpc<Appointment>("soulplace.api.reschedule_appointment", validated);
   },
   timeline(appointment: string) {
