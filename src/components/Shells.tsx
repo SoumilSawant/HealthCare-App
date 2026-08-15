@@ -10,7 +10,6 @@ import {
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Activity,
-  Bell,
   BookOpen,
   CalendarDays,
   CalendarRange,
@@ -208,9 +207,14 @@ export function Topbar({
   const searchRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [searchMessage, setSearchMessage] = useState("");
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const section = location.pathname.split("/").filter(Boolean).pop() || "dashboard";
   const profilePath = portal === "admin" ? "/admin/dashboard" : `/${portal}/profile`;
+  const displayName =
+    (portal === "patient" ? auth.patient?.name1 : undefined) ||
+    (portal === "doctor" ? auth.doctor?.full_name : undefined) ||
+    auth.fullName ||
+    auth.username ||
+    "SoulPlace user";
   useEffect(() => {
     const focusSearch = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
@@ -255,16 +259,12 @@ export function Topbar({
         <span className="sr-only" id={`${portal}-search-status`} aria-live="polite">{searchMessage}</span>
       </form>
       <div className="topbar-actions">
-        <button className="icon-button notification-button" aria-label="Notifications" aria-expanded={notificationsOpen} aria-controls={`${portal}-notifications`} onClick={() => setNotificationsOpen((open) => !open)}>
-          <Bell />
-        </button>
-        {notificationsOpen && <div className="notification-popover" id={`${portal}-notifications`} role="status"><strong>No new notifications</strong><small>Appointment updates will appear here.</small></div>}
         <Link className="profile-menu" to={profilePath}>
           <span className="avatar avatar-small">
-            {auth.fullName?.charAt(0).toUpperCase() || "S"}
+            {displayName.charAt(0).toUpperCase()}
           </span>
           <span>
-            <strong>{auth.fullName || auth.username}</strong>
+            <strong>{displayName}</strong>
             <small>{portal === "admin" ? "Administrator" : portal}</small>
           </span>
           <ChevronDown />

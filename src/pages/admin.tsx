@@ -273,8 +273,8 @@ export function AdminAppointmentsPage() {
   const [patient, setPatient] = useState("");
   const columns: Column<Appointment>[] = [
     { key: "id", header: "Appointment", render: (row) => <strong>{row.name}</strong>, sortValue: (row) => row.name },
-    { key: "patient", header: "Patient", render: (row) => row.patient, sortValue: (row) => row.patient },
-    { key: "doctor", header: "Doctor", render: (row) => row.doctor, sortValue: (row) => row.doctor },
+    { key: "patient", header: "Patient", render: (row) => row.patient_name || row.patient, sortValue: (row) => row.patient_name || row.patient },
+    { key: "doctor", header: "Doctor", render: (row) => row.doctor_name || row.doctor, sortValue: (row) => row.doctor_name || row.doctor },
     { key: "date", header: "Date & time", render: (row) => <span>{row.appointment_date}<small className="table-subtext">{row.appointment_time}</small></span>, sortValue: (row) => `${row.appointment_date} ${row.appointment_time}` },
     { key: "format", header: "Format", render: (row) => row.is_teleconsult ? "Teleconsult" : "In-person" },
     { key: "status", header: "Status", render: (row) => <StatusBadge status={row.status} />, sortValue: (row) => row.status }
@@ -286,19 +286,19 @@ export function AdminAppointmentsPage() {
     queryKey="appointments"
     queryFn={adminApi.appointments}
     columns={columns}
-    searchText={(row) => `${row.name} ${row.patient} ${row.doctor} ${row.appointment_date} ${row.symptoms}`}
+    searchText={(row) => `${row.name} ${row.patient_name || ""} ${row.patient} ${row.doctor_name || ""} ${row.doctor} ${row.appointment_date} ${row.symptoms}`}
     statusKey="status"
     statuses={["Pending", "Confirmed", "Completed", "Cancelled"]}
     additionalFilter={(row) =>
       (!date || row.appointment_date === date) &&
-      (!doctor || row.doctor.toLowerCase().includes(doctor.toLowerCase())) &&
-      (!patient || row.patient.toLowerCase().includes(patient.toLowerCase()))
+      (!doctor || `${row.doctor_name || ""} ${row.doctor}`.toLowerCase().includes(doctor.toLowerCase())) &&
+      (!patient || `${row.patient_name || ""} ${row.patient}`.toLowerCase().includes(patient.toLowerCase()))
     }
     toolbar={
       <>
         <FormField label="Date" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
-        <FormField label="Doctor" value={doctor} onChange={(event) => setDoctor(event.target.value)} placeholder="Doctor ID" />
-        <FormField label="Patient" value={patient} onChange={(event) => setPatient(event.target.value)} placeholder="Patient ID" />
+        <FormField label="Doctor" value={doctor} onChange={(event) => setDoctor(event.target.value)} placeholder="Doctor name" />
+        <FormField label="Patient" value={patient} onChange={(event) => setPatient(event.target.value)} placeholder="Patient name" />
       </>
     }
   />;

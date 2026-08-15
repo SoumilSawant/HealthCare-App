@@ -1,5 +1,5 @@
 import { callRpc, clearSessionTokens, request } from "./client";
-import type { AuthSession } from "../types/domain";
+import type { AuthSession, Doctor } from "../types/domain";
 import {
   normalizeEmail,
   normalizeIndianPhone,
@@ -243,10 +243,9 @@ export const authApi = {
   },
 
   reapplyDoctor(input: { verificationFileBase64: string; verificationFileName: string }) {
-    return callRpc<{ success: boolean; message: string }>(
-      "soulplace.auth.reapply_doctor",
+    return callRpc<{ success: boolean; message: string; doctor: Doctor }>(
+      "soulplace.api.reapply_doctor",
       input,
-      true
     );
   },
 

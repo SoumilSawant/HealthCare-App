@@ -2070,6 +2070,64 @@ tbody tr:last-child td {
   color: var(--rose-700);
 }
 
+.doctor-reapplication {
+  display: grid;
+  margin-top: 1.5rem;
+  padding: clamp(1.1rem, 3vw, 1.5rem);
+  gap: 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--sage-50);
+}
+
+.doctor-reapplication-heading {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.doctor-reapplication-heading .eyebrow,
+.doctor-reapplication-heading h3,
+.doctor-reapplication-heading p {
+  margin: 0;
+}
+
+.doctor-reapplication-heading h3 {
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.doctor-reapplication-heading p:last-child {
+  max-width: 52ch;
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.doctor-reapplication .file-upload {
+  width: 100%;
+  background: var(--paper);
+}
+
+.doctor-reapplication-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.doctor-reapplication-actions .button {
+  min-width: 12.5rem;
+}
+
+.doctor-review-actions {
+  display: grid;
+  margin-top: 1.5rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.doctor-review-actions .button {
+  white-space: nowrap;
+}
+
 .status-line {
   position: relative;
   display: grid;
@@ -2764,14 +2822,48 @@ tbody tr:last-child td {
 }
 
 .calendar-control {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.7rem;
+  width: 100%;
 }
 
-.calendar-control > svg {
-  margin-top: 1.85rem;
-  color: var(--sage-700);
+.booking-doctor-summary {
+  display: flex;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  align-items: center;
+  gap: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--sage-50);
+}
+
+.booking-doctor-summary .avatar {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+}
+
+.booking-doctor-summary > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.booking-doctor-summary small {
+  margin-bottom: 0.15rem;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.booking-doctor-summary strong {
+  font-size: 0.95rem;
+}
+
+.booking-doctor-summary > span > span {
+  color: var(--muted);
+  font-size: 0.76rem;
 }
 
 /* Slot time grid */
@@ -4307,6 +4399,13 @@ tbody tr:last-child td {
   .auth-card {
     padding: 1.2rem;
     box-shadow: none;
+  }
+  .doctor-reapplication-actions .button,
+  .doctor-review-actions .button {
+    width: 100%;
+  }
+  .doctor-review-actions {
+    grid-template-columns: 1fr;
   }
   .landing-page > section {
     margin-top: 7vh;

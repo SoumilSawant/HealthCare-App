@@ -63,7 +63,9 @@ export type AppointmentStatus =
 
 export interface Appointment extends FrappeDocument {
   patient: FrappeName;
+  patient_name?: string;
   doctor: FrappeName;
+  doctor_name?: string;
   appointment_date: string;
   appointment_time: string;
   status: AppointmentStatus;

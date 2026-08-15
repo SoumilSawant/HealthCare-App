@@ -39,5 +39,21 @@ export const teleconsultApi = {
     return callRpc<TeleconsultSession>("soulplace.api.save_google_meet_session", {
       ...validated
     });
+  },
+  saveManualGoogleMeet(appointment: string, meeting_link: string) {
+    const checked = validateGoogleMeet(appointment, "spaces/manual", meeting_link);
+    const code = new URL(checked.meeting_link).pathname.slice(1);
+    const validated = { ...checked, meeting_id: `spaces/${code}` };
+    if (DEMO_MODE) {
+      return this.saveGoogleMeet(
+        validated.appointment,
+        validated.meeting_id,
+        validated.meeting_link
+      );
+    }
+    return callRpc<TeleconsultSession>("soulplace.api.save_manual_google_meet_session", {
+      appointment: validated.appointment,
+      meeting_link: validated.meeting_link
+    });
   }
 };

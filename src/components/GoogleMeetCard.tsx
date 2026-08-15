@@ -10,6 +10,7 @@ export function GoogleMeetCard({
   loading,
   creating,
   configured = true,
+  automaticCreationEnabled = true,
   doctorEmail,
   error,
   onCreate
@@ -20,6 +21,7 @@ export function GoogleMeetCard({
   loading?: boolean;
   creating?: boolean;
   configured?: boolean;
+  automaticCreationEnabled?: boolean;
   doctorEmail?: string;
   error?: unknown;
   onCreate?: () => void;
@@ -31,7 +33,10 @@ export function GoogleMeetCard({
     appointmentStatus === "Confirmed" &&
     ["Created", "Live"].includes(session?.session_status || "");
   const canCreate =
-    audience === "doctor" && appointmentStatus === "Confirmed" && !meetingLink;
+    automaticCreationEnabled &&
+    audience === "doctor" &&
+    appointmentStatus === "Confirmed" &&
+    !meetingLink;
   const errorMessage = error instanceof Error ? error.message : undefined;
 
   const guidance = loading
@@ -52,7 +57,9 @@ export function GoogleMeetCard({
                   : "The private Google Meet room is ready. Open it with the Google account that created the room."
                 : "The saved meeting link is invalid. For safety, SoulPlace will not open it."
             : audience === "doctor"
-              ? "Create a private room with a Google Account you or your clinic controls, then join when you’re ready."
+              ? automaticCreationEnabled
+                ? "Create a private room with a Google Account you or your clinic controls, then join when you’re ready."
+                : "No Meet link has been saved yet. Add a Google Meet link from the appointment actions."
               : "Your doctor hasn’t created the Meet room yet. Check again closer to your appointment.";
 
   return (

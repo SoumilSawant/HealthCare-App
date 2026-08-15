@@ -164,6 +164,7 @@ export function PatientDashboardPage() {
           ) : upcoming ? (
             <AppointmentCard
               appointment={upcoming}
+              doctorName={upcoming.doctor_name}
               actions={
                 <>
                   <Link className="text-link" to={`/patient/appointments/${upcoming.name}`}>
@@ -467,7 +468,7 @@ export function BookingPage() {
     })
   });
 
-  const effectiveDoctor = form.doctor || doctors.data?.data[0]?.name || "";
+  const effectiveDoctor = form.doctor;
   const selectedDoctor = doctors.data?.data.find((doctor) => doctor.name === effectiveDoctor);
   const create = useMutation({
     mutationFn: async () => {
@@ -525,18 +526,27 @@ export function BookingPage() {
                 <LoadingSkeleton rows={2} />
               ) : doctors.isError ? (
                 <ErrorState error={doctors.error} onRetry={() => void doctors.refetch()} />
+              ) : selectedDoctor ? (
+                <>
+                  <div className="booking-doctor-summary" aria-label={`Selected doctor: ${selectedDoctor.full_name}`}>
+                    <div className="avatar avatar-doctor" aria-hidden="true">{selectedDoctor.full_name.charAt(0)}</div>
+                    <span>
+                      <small>Selected doctor</small>
+                      <strong>{selectedDoctor.full_name}</strong>
+                      <span>{selectedDoctor.specialty}</span>
+                    </span>
+                  </div>
+                  <Calendar value={form.date} onChange={(value) => set("date", value)} min={minDate} />
+                  {form.date && (
+                    <AvailableSlots doctor={effectiveDoctor} date={form.date} value={form.time} onChange={(val) => set("time", val)} />
+                  )}
+                </>
               ) : (
-                <SelectField label="Doctor" value={effectiveDoctor} onChange={(event) => setForm((current) => ({ ...current, doctor: event.target.value, time: "" }))} required>
-                  {doctors.data!.data.map((doctor) => (
-                    <option value={doctor.name} key={doctor.name}>
-                      {doctor.full_name} · {doctor.specialty}
-                    </option>
-                  ))}
-                </SelectField>
-              )}
-              <Calendar value={form.date} onChange={(value) => set("date", value)} min={minDate} />
-              {effectiveDoctor && form.date && (
-                <AvailableSlots doctor={effectiveDoctor} date={form.date} value={form.time} onChange={(val) => set("time", val)} />
+                <EmptyState
+                  title="Choose a doctor first"
+                  description="Select a doctor from the directory before choosing an appointment time."
+                  action={<Link className="button button-primary" to="/patient/doctors">Choose a doctor</Link>}
+                />
               )}
             </>
           )}
@@ -664,6 +674,7 @@ export function PatientAppointmentsPage() {
               <AppointmentCard
                 key={appointment.name}
                 appointment={appointment}
+                doctorName={appointment.doctor_name}
                 actions={<Link className="text-link" to={`/patient/appointments/${appointment.name}`}>View details <ArrowRight /></Link>}
               />
             ))}
@@ -743,7 +754,7 @@ export function PatientAppointmentDetailPage() {
       <div className="detail-grid">
         <section className="panel detail-card">
           <dl className="detail-list">
-            <div><dt>Doctor</dt><dd>{item.doctor}</dd></div>
+            <div><dt>Doctor</dt><dd>{item.doctor_name || item.doctor}</dd></div>
             <div><dt>Date</dt><dd>{item.appointment_date}</dd></div>
             <div><dt>Time</dt><dd>{item.appointment_time}</dd></div>
             <div><dt>Consultation type</dt><dd>{item.is_teleconsult ? "Teleconsult" : "In-person"}</dd></div>
@@ -948,13 +959,108 @@ export function MoodResultsPage() {
   );
 }
 
-const wellnessResources = [
-  { id: "grounding-54321", title: "The 5–4–3–2–1 grounding practice", category: "Anxiety", format: "Guide", duration: "5 min", summary: "Use your senses to reconnect with the present moment.", body: "Pause and notice five things you can see, four you can feel, three you can hear, two you can smell, and one you can taste. Move gently and breathe naturally." },
-  { id: "gentle-sleep", title: "A gentler wind-down for sleep", category: "Sleep", format: "Guide", duration: "8 min", summary: "Create a low-pressure bridge from a busy day to rest.", body: "Dim the room, set tomorrow’s concerns down on paper, and choose one quiet activity. Rest is useful even before sleep arrives." },
-  { id: "name-the-feeling", title: "Name what you’re feeling", category: "Emotions", format: "Article", duration: "6 min", summary: "Build emotional clarity without judging the feeling.", body: "Try: I notice I feel ___. It makes sense because ___. What I need most right now may be ___. You do not have to solve the feeling to listen to it." },
-  { id: "breathing-space", title: "Three-minute breathing space", category: "Stress", format: "Video", duration: "3 min", summary: "A short pause for a crowded mind.", body: "Notice what is here, gather attention around the breath, then expand awareness to the whole body. Let your next action be deliberate." },
-  { id: "support-conversation", title: "Starting a support conversation", category: "Connection", format: "Article", duration: "7 min", summary: "Simple words for telling someone you need company.", body: "You might say: I’ve been having a difficult time and I don’t need you to fix it. Could you stay with me and listen for a while?" },
-  { id: "self-compassion", title: "A self-compassion break", category: "Self-care", format: "Guide", duration: "4 min", summary: "Respond to a hard moment with less self-criticism.", body: "Acknowledge: this is hard. Remember: difficulty is part of being human. Offer: may I be kind to myself in this moment." }
+type WellnessResource = {
+  id: string;
+  title: string;
+  category: string;
+  format: "Article" | "Practice";
+  duration: string;
+  summary: string;
+  sections: Array<{ heading: string; paragraphs: string[]; steps?: string[] }>;
+  source: { label: string; url: string };
+};
+
+const wellnessResources: WellnessResource[] = [
+  {
+    id: "grounding-54321",
+    title: "The 5–4–3–2–1 grounding practice",
+    category: "Anxiety",
+    format: "Practice",
+    duration: "6 min read",
+    summary: "A step-by-step sensory practice for reconnecting with the present when thoughts or feelings become overwhelming.",
+    sections: [
+      { heading: "What grounding means", paragraphs: ["Grounding is a way of deliberately bringing attention back to what is happening around you right now. It does not require you to argue with a thought, force yourself to relax, or pretend that a difficult feeling has disappeared.", "The aim is smaller: notice that the feeling is present while also noticing the room, your body, and the choices available in this moment. Some people use grounding during stress, anxious thoughts, or a sense of being emotionally flooded."] },
+      { heading: "Prepare without pressure", paragraphs: ["Choose a place where you feel reasonably safe. Sit, stand, or walk slowly—whichever feels more comfortable. Let your breathing remain natural. If closing your eyes feels unsafe or uncomfortable, keep them open.", "Remind yourself that this is a practice, not a test. You can pause, repeat a step, name fewer items, or stop at any time."] },
+      { heading: "Move through your five senses", paragraphs: ["Take a little time with each item. Describe ordinary details such as colour, temperature, distance, shape, texture, or volume."], steps: ["Name five things you can see. Look for details you had not noticed before.", "Notice four things you can physically feel, such as your feet on the floor, fabric against your skin, or an object in your hand.", "Listen for three sounds. Include quiet or distant sounds if you can.", "Identify two scents. If none are noticeable, remember two familiar, neutral scents.", "Notice one taste, or take a slow sip of water and describe it."] },
+      { heading: "Return to your next small action", paragraphs: ["When you finish, name where you are, the approximate time, and one manageable thing you will do next. That might be drinking water, opening a window, messaging someone, or returning to a task for five minutes.", "Grounding may not remove distress immediately. If the exercise makes you feel worse, stop and try another anchor such as listening to music, moving your body, or speaking to someone you trust. Seek urgent help if you feel unable to keep yourself or someone else safe."] }
+    ],
+    source: { label: "WHO — Doing What Matters in Times of Stress", url: "https://www.who.int/publications/i/item/9789240003927" }
+  },
+  {
+    id: "gentle-sleep",
+    title: "A gentler wind-down for sleep",
+    category: "Sleep",
+    format: "Article",
+    duration: "8 min read",
+    summary: "Build a realistic evening routine that supports rest without turning sleep into another task to perform perfectly.",
+    sections: [
+      { heading: "Why a wind-down helps", paragraphs: ["Sleep rarely begins the moment the day ends. A repeated wind-down routine can act as a transition between activity and rest. It gives your mind fewer new demands and helps your body recognise that the active part of the day is ending.", "The routine does not have to be long or elaborate. Consistency is usually more useful than trying a completely different solution every night."] },
+      { heading: "Create a simple evening sequence", paragraphs: ["Choose two or three quiet actions that are realistic in your home. Begin at roughly the same time and keep the lights softer when possible."], steps: ["Set a reminder to begin winding down rather than only setting a morning alarm.", "Finish urgent tasks, then write down anything that can wait until tomorrow.", "Choose a low-stimulation activity such as reading, gentle stretching, a warm shower, or quiet audio.", "Keep phones and bright screens away from the bed when practical.", "Aim for reasonably consistent sleeping and waking times, including weekends."] },
+      { heading: "Make the room work for you", paragraphs: ["Many people sleep more comfortably in a room that is quiet, dark, and not too warm, but personal needs differ. Try one change at a time so you can notice what actually helps.", "If noise is unavoidable, neutral background sound may be useful. Turn clocks away if checking the time increases pressure. Consider how caffeine, nicotine, alcohol, heavy late meals, and vigorous exercise close to bedtime affect your own sleep."] },
+      { heading: "When you are awake in bed", paragraphs: ["Trying to force sleep can make the bed feel like a place of effort. If you are comfortable resting, allow yourself to rest. If you become frustrated and remain awake, get up when safe, sit somewhere comfortable, and do something quiet until you feel sleepier.", "One difficult night is not a failure. Speak with a qualified healthcare professional if sleep problems are persistent, significantly affect daily life, or occur alongside severe low mood, anxiety, breathing problems, or other concerning symptoms."] }
+    ],
+    source: { label: "NHS Every Mind Matters — Sleep guidance", url: "https://www.nhs.uk/every-mind-matters/mental-wellbeing-tips/how-to-fall-asleep-faster-and-sleep-better/" }
+  },
+  {
+    id: "name-the-feeling",
+    title: "Name what you’re feeling",
+    category: "Emotions",
+    format: "Article",
+    duration: "7 min read",
+    summary: "Use plain, non-judgmental language to understand an emotion and choose what you need next.",
+    sections: [
+      { heading: "Start with observation", paragraphs: ["Emotions can arrive as body sensations, thoughts, urges, or changes in energy before we have words for them. Begin by noticing rather than explaining. You may detect a tight jaw, heavy chest, restless hands, fast thoughts, tiredness, or an urge to avoid something.", "Try describing what is present as information: ‘My shoulders are tense’ or ‘My thoughts are moving quickly.’ This can be gentler than immediately deciding that the feeling is wrong or that it must go away."] },
+      { heading: "Choose an approximate word", paragraphs: ["You do not need the perfect label. Start broad—sad, worried, angry, ashamed, lonely, relieved, numb, hopeful—and refine it only if that is useful. More than one emotion can be present at the same time.", "Add a phrase such as ‘I notice…’ or ‘A part of me feels…’. This creates a little distance between you and the experience: the emotion is something you are noticing, not your entire identity."] },
+      { heading: "Use four gentle prompts", paragraphs: ["Write or say one sentence for each prompt. Leave a prompt blank if you are unsure."], steps: ["I notice that I feel…", "This may have been influenced by…", "I notice it most strongly in…", "What I may need in the next hour is…"] },
+      { heading: "Respond instead of judging", paragraphs: ["A feeling can be understandable without controlling your next action. After naming it, choose one small response: drink water, eat something, rest, move, write down a concern, set a boundary, or contact someone supportive.", "If intense or distressing emotions continue, interfere with everyday life, or make you feel unsafe, consider speaking with a qualified mental-health professional. Use urgent or emergency support if you may harm yourself or someone else."] }
+    ],
+    source: { label: "WHO — Doing What Matters in Times of Stress", url: "https://www.who.int/publications/i/item/9789240003927" }
+  },
+  {
+    id: "breathing-space",
+    title: "A three-minute breathing space",
+    category: "Stress",
+    format: "Practice",
+    duration: "5 min read",
+    summary: "A brief, flexible pause that moves from noticing your experience to choosing your next action.",
+    sections: [
+      { heading: "Set up the pause", paragraphs: ["This practice can be done sitting, standing, or walking slowly. Choose a position that feels supported. Keep your eyes open if that feels safer. There is no need to create a special mood before beginning.", "Breathing exercises are not comfortable for everyone. You may use the sounds around you, the feeling of your feet, or an object in your hand as the centre of attention instead."] },
+      { heading: "Minute one: notice what is here", paragraphs: ["Ask yourself: ‘What am I noticing right now?’ Include thoughts, emotions, and body sensations. Try to observe them without deciding whether you are doing well or badly.", "If the answer is unclear, notice one concrete fact: the position of your body, a sound in the room, or the temperature of the air."] },
+      { heading: "Minute two: gather attention", paragraphs: ["Bring attention to one place where natural breathing is easy to feel—the nose, chest, or abdomen. Do not force a deep breath, hold your breath, or aim for a particular rhythm. When attention wanders, gently return.", "If breath awareness increases discomfort, switch immediately to another neutral anchor such as sounds or contact with the chair."] },
+      { heading: "Minute three: widen and choose", paragraphs: ["Expand attention to include your whole body and the space around you. Notice that difficult thoughts or sensations can be present within a wider field of experience.", "Finish by choosing one deliberate next action. It can be very small: stand up, take a sip of water, reply to one message, ask for help, or pause a demanding task. Stop the exercise and seek appropriate support if you feel increasingly distressed or unsafe."] }
+    ],
+    source: { label: "WHO — Doing What Matters in Times of Stress", url: "https://www.who.int/publications/i/item/9789240003927" }
+  },
+  {
+    id: "support-conversation",
+    title: "Starting a support conversation",
+    category: "Connection",
+    format: "Article",
+    duration: "8 min read",
+    summary: "Plan what to say, ask for the kind of support you need, and decide what to do if the first conversation is difficult.",
+    sections: [
+      { heading: "Decide who might feel safe enough", paragraphs: ["Think of someone who usually listens respectfully and can keep appropriate confidence. This could be a friend, relative, colleague, teacher, community member, or healthcare professional. The closest person is not always the easiest person to speak with.", "Choose a setting that lowers pressure. Some people prefer walking, travelling in a car, cooking, texting first, or speaking by phone rather than sitting face-to-face."] },
+      { heading: "Plan only the opening", paragraphs: ["You do not need to prepare your entire story. Write down two or three points: what has been difficult, how it is affecting you, and what kind of response would help. Choose a time when neither person has to rush.", "It is okay to start by saying that the conversation feels difficult. You can share a little, pause, and return to it later."] },
+      { heading: "Useful ways to begin", paragraphs: ["Adapt these examples so they sound like you."], steps: ["I have been having a difficult time and I would like to tell you about it.", "I do not need you to solve this; listening would help.", "I am not sure how to explain everything, but I do not want to handle it alone.", "Could you check in with me tomorrow?", "Would you help me find or contact a professional?"] },
+      { heading: "Be specific about support", paragraphs: ["People may respond with advice when you mainly want company. Say whether you would like listening, practical help, distraction, regular check-ins, or help arranging care. The other person may also need to be honest about what they can provide.", "One unhelpful response does not mean your needs are unimportant. Try another person or a qualified professional. If you are in immediate danger, cannot keep yourself safe, or may harm someone else, contact local emergency services or urgent crisis support now."] }
+    ],
+    source: { label: "NHS Every Mind Matters — Talking about mental health", url: "https://www.nhs.uk/every-mind-matters/mental-wellbeing-tips/how-to-talk-about-your-mental-health/" }
+  },
+  {
+    id: "self-compassion",
+    title: "A self-compassion break",
+    category: "Self-care",
+    format: "Practice",
+    duration: "6 min read",
+    summary: "Practise responding to a difficult moment with honesty, steadiness, and one realistic act of care.",
+    sections: [
+      { heading: "Compassion is not pretending", paragraphs: ["Self-compassion does not mean claiming that everything is fine, avoiding responsibility, or forcing positive thoughts. It means recognising that something is difficult and choosing not to add unnecessary cruelty to the experience.", "You can acknowledge a mistake, repair harm, or make a difficult change while speaking to yourself in a steady and respectful way."] },
+      { heading: "Step one: acknowledge the moment", paragraphs: ["Use a simple sentence that matches the facts: ‘This is difficult,’ ‘I feel overwhelmed,’ or ‘I am disappointed in what happened.’ Try not to turn one event into a judgement about your entire worth.", "Notice how self-criticism appears—in words, images, tension, or an urge to withdraw. You do not have to debate every thought before moving to the next step."] },
+      { heading: "Step two: choose a steadier voice", paragraphs: ["Imagine how you would speak to someone you care about who faced the same situation. Choose a phrase that feels believable rather than overly positive."], steps: ["Difficulty is part of being human.", "I can be honest without attacking myself.", "I can take responsibility one step at a time.", "May I respond with patience in this moment."] },
+      { heading: "Step three: make care concrete", paragraphs: ["Ask what would support the next hour—not what would solve your entire life. The answer may be food, water, rest, movement, a boundary, completing one small task, contacting someone, or arranging professional support.", "Self-care is personal and may take trial and error. If distress is severe, lasts for weeks, interferes with ordinary tasks, or includes thoughts of harm, reach out to a qualified professional or urgent support rather than relying on self-help alone."] }
+    ],
+    source: { label: "NIMH — Caring for Your Mental Health", url: "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health" }
+  }
 ];
 
 export function ResourcesPage() {
@@ -999,8 +1105,8 @@ export function ResourcesPage() {
         const isSaved = (savedResourcesQuery.data?.data || []).some(r => r.resource_id === item.id);
         return (
         <article className="resource-card" key={item.id}>
-          <div className={`resource-art art-${item.category.toLowerCase()}`}><span>{item.format === "Video" ? <PlayCircle /> : <BookOpen />}</span></div>
-          <div><p className="eyebrow">{item.category} · {item.duration}</p><h2>{item.title}</h2><p>{item.summary}</p><div className="card-actions"><Link className="text-link" to={`/patient/resources/${item.id}`}>Open resource <ArrowRight /></Link><Button variant={isSaved ? "secondary" : "ghost"} disabled={toggleSave.isPending} onClick={() => toggleSave.mutate(item.id)}><Save /> {isSaved ? "Saved" : "Save"}</Button></div></div>
+          <div className={`resource-art art-${item.category.toLowerCase()}`}><span>{item.format === "Practice" ? <PlayCircle /> : <BookOpen />}</span></div>
+          <div><p className="eyebrow">{item.category} · {item.format} · {item.duration}</p><h2>{item.title}</h2><p>{item.summary}</p><div className="card-actions"><Link className="text-link" to={`/patient/resources/${item.id}`}>Read full article <ArrowRight /></Link><Button variant={isSaved ? "secondary" : "ghost"} disabled={toggleSave.isPending} onClick={() => toggleSave.mutate(item.id)}><Save /> {isSaved ? "Saved" : "Save"}</Button></div></div>
         </article>
       )})}</div> : <EmptyState title="No resources found" description="Try a different keyword or category." />}
     </>
@@ -1014,14 +1120,20 @@ export function ResourceDetailPage() {
   return (
     <article className="resource-detail">
       <Breadcrumbs items={[{ label: "Resources", to: "/patient/resources" }, { label: resource.title }]} />
-      <p className="eyebrow">{resource.category} · {resource.duration}</p>
+      <p className="eyebrow">{resource.category} · {resource.format} · {resource.duration}</p>
       <h1>{resource.title}</h1>
       <p className="resource-lede">{resource.summary}</p>
       <div className={`resource-hero-art art-${resource.category.toLowerCase()}`}><BookHeart /></div>
       <section className="article-body">
-        <h2>Take this at your own pace</h2>
-        <p>{resource.body}</p>
-        <aside><strong>A gentle reminder</strong><p>This resource supports wellbeing but does not replace professional or emergency care.</p></aside>
+        {resource.sections.map((section) => (
+          <section key={section.heading}>
+            <h2>{section.heading}</h2>
+            {section.paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+            {section.steps && <ol>{section.steps.map((step) => <li key={step}>{step}</li>)}</ol>}
+          </section>
+        ))}
+        <aside><strong>Wellness information, not medical advice</strong><p>This resource supports general wellbeing but does not diagnose or treat a condition and does not replace professional or emergency care.</p></aside>
+        <p><strong>Source:</strong> <a href={resource.source.url} target="_blank" rel="noreferrer">{resource.source.label}</a></p>
       </section>
       <div className="card-actions"><Link className="button button-secondary" to="/patient/resources"><ArrowLeft /> Back to library</Link><Button disabled variant="ghost"><Save /> Save resource</Button></div>
     </article>
@@ -1097,13 +1209,20 @@ export function PatientSettingsPage() {
     queryFn: () => consentsApi.list({ filters: [["patient", "=", auth.patient?.name || ""]], fields: ["*"], orderBy: "creation desc", limitPageLength: 100 }),
     enabled: Boolean(auth.patient?.name)
   });
-  const granted = consents.data?.data.some((item) => item.status === "Granted") || false;
+  const currentConsents = useMemo(() => {
+    const seen = new Set<string>();
+    return (consents.data?.data || []).filter((item) => {
+      if (seen.has(item.consent_type)) return false;
+      seen.add(item.consent_type);
+      return true;
+    });
+  }, [consents.data?.data]);
+  const granted = currentConsents.some((item) => item.status === "Granted");
   return (
     <>
       <PageHeader eyebrow="Preferences" title="Settings" description="Manage consent, language, and account preferences." />
       <div className="settings-list">
-        <section className="panel"><h2>Consent and privacy</h2>{consents.isLoading ? <LoadingSkeleton rows={2} compact /> : consents.isError ? <ErrorState error={consents.error} onRetry={() => void consents.refetch()} /> : <><ConsentBanner granted={granted} /><div className="summary-list">{consents.data!.data.map((item) => <div className="setting-row" key={item.name}><span><strong>{item.consent_type}</strong><small>Version {item.consent_version || "not recorded"}</small></span><StatusBadge status={item.status} /></div>)}</div></>}</section>
-        <section className="panel"><h2>Account security</h2><div className="setting-row"><span><strong>Session authentication</strong><small>Managed by your Frappe session cookie.</small></span><ShieldCheck /></div><div className="setting-row"><span><strong>Local storage</strong><small>Passwords and medical details are never stored there.</small></span><CheckCircle2 /></div></section>
+        <section className="panel"><h2>Consent and privacy</h2>{consents.isLoading ? <LoadingSkeleton rows={2} compact /> : consents.isError ? <ErrorState error={consents.error} onRetry={() => void consents.refetch()} /> : <><ConsentBanner granted={granted} /><div className="summary-list">{currentConsents.map((item) => <div className="setting-row" key={item.name}><span><strong>{item.consent_type}</strong><small>Version {item.consent_version || "not recorded"}</small></span><StatusBadge status={item.status} /></div>)}</div></>}</section>
       </div>
     </>
   );

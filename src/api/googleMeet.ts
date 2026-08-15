@@ -10,6 +10,8 @@ const GOOGLE_REQUEST_TIMEOUT_MS = 15_000;
 const GOOGLE_SCRIPT_TIMEOUT_MS = 10_000;
 const GOOGLE_OAUTH_TIMEOUT_MS = 120_000;
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
+const automatedCreationEnabled =
+  import.meta.env.VITE_ENABLE_AUTOMATED_GOOGLE_MEET === "true";
 
 interface GoogleTokenResponse {
   access_token?: string;
@@ -291,6 +293,7 @@ export function isGoogleMeetLink(value?: string) {
 }
 
 export const googleMeetApi = {
+  isAutomaticCreationEnabled: () => automatedCreationEnabled,
   isConfigured: () => DEMO_MODE || !googleMeetConfigurationIssue(),
   async createSpace(options: CreateGoogleMeetOptions = {}): Promise<GoogleMeetSpace> {
     if (DEMO_MODE) {

@@ -78,6 +78,20 @@ describe("GoogleMeetCard", () => {
     expect(screen.getByText(/needs a Google OAuth web client/i)).toBeInTheDocument();
   });
 
+  it("keeps automated creation hidden when manual Meet entry is active", () => {
+    render(
+      <GoogleMeetCard
+        audience="doctor"
+        appointmentStatus="Confirmed"
+        automaticCreationEnabled={false}
+        onCreate={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: /Create Google Meet/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/Add a Google Meet link from the appointment actions/i)).toBeInTheDocument();
+  });
+
   it("hides join actions after a consultation is completed", () => {
     render(
       <GoogleMeetCard

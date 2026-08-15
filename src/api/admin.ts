@@ -118,10 +118,12 @@ export const adminApi = {
     });
   },
   appointments() {
-    return listRecords<Appointment>("Patient Appointment", {
-      fields: ["*"],
-      limitPageLength: 100
-    });
+    if (!DEMO_MODE) {
+      return callRpc<Appointment[]>("soulplace.api.list_admin_appointments", {
+        limit: 200
+      }).then((data) => ({ data }));
+    }
+    return listRecords<Appointment>("Appointment", { fields: ["*"], limitPageLength: 100 });
   },
   consultations() {
     return listRecords<Consultation>("Consultation", {

@@ -6,6 +6,7 @@ import { clearSessionTokens } from "../api/client";
 import { consultationsApi } from "../api/consultations";
 import { doctorsApi } from "../api/doctors";
 import { patientsApi } from "../api/patients";
+import { teleconsultApi } from "../api/teleconsult";
 
 function ok(message: unknown = { name: "RECORD-1" }) {
   return Promise.resolve(new Response(JSON.stringify({ message }), { status: 200 }));
@@ -65,18 +66,48 @@ describe("secure portal RPC contracts", () => {
 
   it("uses guarded status and reschedule transitions", async () => {
     await appointmentsApi.confirm("APT-1");
+    await appointmentsApi.confirm(
+      "APT-VIDEO",
+      "https://meet.google.com/abc-defg-hij"
+    );
     await appointmentsApi.complete("APT-1");
     await appointmentsApi.reschedule("APT-1", "2026-09-01", "11:30", "Patient request");
     const bodies = vi.mocked(fetch).mock.calls
       .filter(([url]) => String(url).includes("soulplace.api."))
       .map(([, options]) => JSON.parse(String(options?.body)));
     expect(bodies).toContainEqual({ name: "APT-1", status: "Confirmed" });
+    expect(bodies).toContainEqual({
+      name: "APT-VIDEO",
+      status: "Confirmed",
+      meeting_link: "https://meet.google.com/abc-defg-hij"
+    });
     expect(bodies).toContainEqual({ name: "APT-1", status: "Completed" });
     expect(bodies).toContainEqual({
       name: "APT-1",
       appointment_date: "2026-09-01",
       appointment_time: "11:30",
       reason: "Patient request"
+    });
+  });
+
+  it("submits rejected-doctor proof and manual Meet links through owned RPCs", async () => {
+    await authApi.reapplyDoctor({
+      verificationFileBase64: "data:application/pdf;base64,JVBERi0=",
+      verificationFileName: "replacement.pdf"
+    });
+    await teleconsultApi.saveManualGoogleMeet(
+      "APT-VIDEO",
+      "https://meet.google.com/abc-defg-hij"
+    );
+
+    const calls = vi.mocked(fetch).mock.calls;
+    expect(calls.some(([url]) => String(url).endsWith("soulplace.api.reapply_doctor"))).toBe(true);
+    const manualMeet = calls.find(([url]) =>
+      String(url).endsWith("soulplace.api.save_manual_google_meet_session")
+    );
+    expect(JSON.parse(String(manualMeet?.[1]?.body))).toEqual({
+      appointment: "APT-VIDEO",
+      meeting_link: "https://meet.google.com/abc-defg-hij"
     });
   });
 

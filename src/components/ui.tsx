@@ -18,7 +18,6 @@ import { Link } from "react-router-dom";
 import {
   AlertCircle,
   ArrowRight,
-  CalendarDays,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -432,6 +431,10 @@ export function Modal({
 }>) {
   const titleId = useId();
   const dialogRef = useRef<HTMLElement>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
   useEffect(() => {
     if (!open) return;
     const previouslyFocused = document.activeElement as HTMLElement | null;
@@ -443,7 +446,7 @@ export function Modal({
     const close = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
       }
       if (event.key !== "Tab") return;
       const elements = focusable();
@@ -463,7 +466,7 @@ export function Modal({
       document.removeEventListener("keydown", close);
       previouslyFocused?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
   if (!open) return null;
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
@@ -848,7 +851,6 @@ export function Calendar({
 }) {
   return (
     <div className="calendar-control">
-      <CalendarDays aria-hidden="true" />
       <FormField
         label="Appointment date"
         type="date"
@@ -956,7 +958,7 @@ export function AppointmentCard({
       <div className="appointment-main">
         <div className="card-heading">
           <div>
-            <h3>{doctorName || patientName || appointment.doctor}</h3>
+            <h3>{doctorName || patientName || appointment.doctor_name || appointment.patient_name || appointment.doctor}</h3>
             <p>
               {appointment.is_teleconsult ? "Video consultation" : "In-person"} ·{" "}
               {appointment.appointment_time}

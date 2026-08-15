@@ -1,9 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import {
   DataTable,
   FormField,
   Modal,
+  TextAreaField,
   TimeSlotPicker,
   type Column
 } from "../components/ui";
@@ -30,6 +32,27 @@ describe("shared UI behavior", () => {
       .toHaveAttribute("aria-modal", "true");
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("keeps a modal field focused when its controlled value changes", () => {
+    function ModalForm() {
+      const [reason, setReason] = useState("");
+      return (
+        <Modal open title="Cancel appointment?" onClose={() => undefined}>
+          <TextAreaField
+            label="Cancellation reason"
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        </Modal>
+      );
+    }
+
+    render(<ModalForm />);
+    const field = screen.getByRole("textbox", { name: "Cancellation reason" });
+    field.focus();
+    fireEvent.change(field, { target: { value: "No longer available" } });
+    expect(field).toHaveFocus();
   });
 
   it("sorts data tables in both directions", () => {

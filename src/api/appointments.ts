@@ -78,9 +78,13 @@ export const appointmentsApi = {
     if (DEMO_MODE) return updateRecord<Appointment>("Appointment", validated.name, { status: "Cancelled", cancel_reason: validated.reason });
     return callRpc<Appointment>("soulplace.api.update_appointment_status", { ...validated, status: "Cancelled" });
   },
-  confirm(name: string) {
+  confirm(name: string, meetingLink = "") {
     if (DEMO_MODE) return updateRecord<Appointment>("Appointment", name, { status: "Confirmed" });
-    return callRpc<Appointment>("soulplace.api.update_appointment_status", { name, status: "Confirmed" });
+    return callRpc<Appointment>("soulplace.api.update_appointment_status", {
+      name,
+      status: "Confirmed",
+      ...(meetingLink ? { meeting_link: meetingLink } : {})
+    });
   },
   complete(name: string) {
     if (DEMO_MODE) return updateRecord<Appointment>("Appointment", name, { status: "Completed" });

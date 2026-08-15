@@ -700,26 +700,33 @@ export function DoctorPendingPage() {
         </div>
       </div>
       {status === "Rejected" && (
-        <div style={{ marginTop: "var(--space-6)", padding: "var(--space-6)", backgroundColor: "var(--surface-sunken)", borderRadius: "var(--radius-xl)" }}>
-          <h3 style={{ fontSize: "var(--text-sm)", marginBottom: "var(--space-4)" }}>Submit new verification document</h3>
+        <section className="doctor-reapplication" aria-labelledby="doctor-reapplication-title">
+          <div className="doctor-reapplication-heading">
+            <p className="eyebrow">Verification required</p>
+            <h3 id="doctor-reapplication-title">Upload a replacement document</h3>
+            <p>
+              Add a clear PDF, JPG or PNG. Your application will return to the review queue
+              after submission.
+            </p>
+          </div>
           <FileUpload
-            label="Verification proof (PDF or Image)"
+            label="Verification proof"
             value={reapplyFile?.name}
             onFile={setReapplyFile}
             accept=".pdf,image/png,image/jpeg"
           />
-          <Button 
-            className="w-full" 
-            style={{ marginTop: "var(--space-4)" }}
-            disabled={!reapplyFile || busy} 
-            onClick={() => void handleReapply()}
-          >
-            {busy ? "Submitting..." : "Submit re-application"}
-          </Button>
-        </div>
+          <div className="doctor-reapplication-actions">
+            <Button
+              disabled={!reapplyFile || busy}
+              onClick={() => void handleReapply()}
+            >
+              {busy ? "Submitting…" : "Submit for review"}
+            </Button>
+          </div>
+        </section>
       )}
-      <div style={{ display: "flex", gap: "var(--space-4)", marginTop: "var(--space-6)" }}>
-        <Button onClick={() => void refresh()} disabled={busy} icon={<RefreshCw />} style={{ flex: 1 }}>
+      <div className="doctor-review-actions">
+        <Button onClick={() => void refresh()} disabled={busy} icon={<RefreshCw />}>
           {busy ? "Refreshing…" : "Refresh approval status"}
         </Button>
         <Button variant="ghost" onClick={() => void auth.logout()}>
