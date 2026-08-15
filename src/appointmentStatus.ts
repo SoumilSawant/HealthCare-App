@@ -16,3 +16,10 @@ export function isPastAppointment(appointment: Appointment, today: string) {
     ["Completed", "Cancelled"].includes(appointment.status)
   );
 }
+
+export function wasRejectedByDoctor(appointment: Appointment) {
+  return (
+    appointment.status === "Cancelled" &&
+    appointment.cancel_reason?.toLowerCase().includes("please create a new appointment") === true
+  );
+}

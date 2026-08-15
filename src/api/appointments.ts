@@ -78,6 +78,19 @@ export const appointmentsApi = {
     if (DEMO_MODE) return updateRecord<Appointment>("Appointment", validated.name, { status: "Cancelled", cancel_reason: validated.reason });
     return callRpc<Appointment>("soulplace.api.update_appointment_status", { ...validated, status: "Cancelled" });
   },
+  reject(name: string, reason: string) {
+    const validated = validateCancellation(name, reason);
+    if (DEMO_MODE) {
+      return updateRecord<Appointment>("Appointment", validated.name, {
+        status: "Cancelled",
+        cancel_reason: `Doctor declined this appointment request: ${validated.reason}. Please create a new appointment.`
+      });
+    }
+    return callRpc<Appointment>("soulplace.api.update_appointment_status", {
+      ...validated,
+      status: "Cancelled"
+    });
+  },
   confirm(name: string) {
     if (DEMO_MODE) return updateRecord<Appointment>("Appointment", name, { status: "Confirmed" });
     return callRpc<Appointment>("soulplace.api.update_appointment_status", { name, status: "Confirmed" });
@@ -88,7 +101,12 @@ export const appointmentsApi = {
   },
   reschedule(name: string, appointment_date: string, appointment_time: string, reason = "") {
     const validated = validateReschedule(name, appointment_date, appointment_time, reason);
-    if (DEMO_MODE) return updateRecord<Appointment>("Appointment", validated.name, { appointment_date: validated.appointment_date, appointment_time: validated.appointment_time });
+    if (DEMO_MODE) return updateRecord<Appointment>("Appointment", validated.name, {
+      appointment_date: validated.appointment_date,
+      appointment_time: validated.appointment_time,
+      status: "Pending",
+      cancel_reason: ""
+    });
     return callRpc<Appointment>("soulplace.api.reschedule_appointment", validated);
   },
   timeline(appointment: string) {

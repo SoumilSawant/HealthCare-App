@@ -33,7 +33,7 @@ import {
   WalletCards
 } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
-import { isPastAppointment, isUpcomingAppointment } from "../appointmentStatus";
+import { isPastAppointment, isUpcomingAppointment, wasRejectedByDoctor } from "../appointmentStatus";
 import { appointmentsApi } from "../api/appointments";
 import { consentsApi } from "../api/consents";
 import { consultationsApi } from "../api/consultations";
@@ -381,20 +381,35 @@ interface BookingForm {
   telemedicineConsent: boolean;
 }
 
-function AvailableSlots({ doctor, date, value, onChange }: { doctor: string; date: string; value: string; onChange: (v: string) => void }) {
+export function AvailableSlots({
+  doctor,
+  date,
+  value,
+  onChange,
+  heading = "Available times",
+  emptyDescription = "This doctor has no available time slots on this date."
+}: {
+  doctor: string;
+  date: string;
+  value: string;
+  onChange: (value: string) => void;
+  heading?: string;
+  emptyDescription?: string;
+}) {
   const query = useQuery({
     queryKey: ["doctor-slots", doctor, date],
-    queryFn: () => doctorsApi.getSlots(doctor, date)
+    queryFn: () => doctorsApi.getSlots(doctor, date),
+    enabled: Boolean(doctor && date)
   });
-  
+
   if (query.isLoading) return <div className="slots-container"><LoadingSkeleton rows={2} /></div>;
-  if (query.isError) return <div className="slots-container"><ErrorState error={query.error} /></div>;
-  
+  if (query.isError) return <div className="slots-container"><ErrorState error={query.error} onRetry={() => void query.refetch()} /></div>;
+
   const slots = query.data || [];
-  
+
   return (
     <div className="slots-container">
-      <h3 style={{ margin: "1rem 0 0.5rem" }}>Available Times</h3>
+      <h3 style={{ margin: "1rem 0 0.5rem" }}>{heading}</h3>
       {slots.length ? (
         <div className="time-grid">
           {slots.map((time: string) => (
@@ -402,6 +417,7 @@ function AvailableSlots({ doctor, date, value, onChange }: { doctor: string; dat
               key={time}
               type="button"
               className={`time-pill ${value === time ? "selected" : ""}`}
+              aria-pressed={value === time}
               onClick={() => onChange(time)}
             >
               {time.substring(0, 5)}
@@ -409,7 +425,7 @@ function AvailableSlots({ doctor, date, value, onChange }: { doctor: string; dat
           ))}
         </div>
       ) : (
-        <EmptyState title="No slots available" description="This doctor has no available time slots on this date." />
+        <EmptyState title="No slots available" description={emptyDescription} />
       )}
     </div>
   );
@@ -534,7 +550,7 @@ export function BookingPage() {
                   ))}
                 </SelectField>
               )}
-              <Calendar value={form.date} onChange={(value) => set("date", value)} min={minDate} />
+              <Calendar value={form.date} onChange={(value) => setForm((current) => ({ ...current, date: value, time: "" }))} min={minDate} />
               {effectiveDoctor && form.date && (
                 <AvailableSlots doctor={effectiveDoctor} date={form.date} value={form.time} onChange={(val) => set("time", val)} />
               )}
@@ -713,7 +729,7 @@ export function PatientAppointmentDetailPage() {
   const reschedule = useMutation({
     mutationFn: () => appointmentsApi.reschedule(appointmentId || "", newDate, newTime, reason),
     onSuccess: () => {
-      toast.notify("Appointment rescheduled.");
+      toast.notify("Reschedule request sent to your doctor for approval.");
       setRescheduleOpen(false);
       void queryClient.invalidateQueries({ queryKey: ["appointment", appointmentId] });
       void queryClient.invalidateQueries({ queryKey: ["appointment-timeline", appointmentId] });
@@ -727,10 +743,30 @@ export function PatientAppointmentDetailPage() {
   }
   const item = appointment.data;
   const session = teleconsult.data?.data[0];
+  const doctorRejected = wasRejectedByDoctor(item);
   return (
     <>
       <Breadcrumbs items={[{ label: "Appointments", to: "/patient/appointments" }, { label: item.name }]} />
       <PageHeader title="Appointment details" description={`Reference ${item.name}`} actions={<StatusBadge status={item.status} />} />
+      {item.status === "Pending" ? (
+        <div className="integration-notice" role="status">
+          <Clock3 />
+          <div>
+            <strong>Awaiting doctor approval</strong>
+            <p>Your requested appointment time has been sent to the doctor. We’ll update this appointment after they accept or reject it.</p>
+          </div>
+        </div>
+      ) : null}
+      {doctorRejected ? (
+        <div className="integration-notice appointment-rejected-notice" role="alert">
+          <CalendarCheck />
+          <div>
+            <strong>The doctor could not accept this appointment request</strong>
+            <p>The previous appointment has been cancelled. Choose a new time by creating a new appointment.</p>
+            <Link className="button button-primary" to={`/patient/book?doctor=${encodeURIComponent(item.doctor)}`}>Create new appointment</Link>
+          </div>
+        </div>
+      ) : null}
       {item.is_teleconsult ? (
         <GoogleMeetCard
           audience="patient"
@@ -754,7 +790,7 @@ export function PatientAppointmentDetailPage() {
             {["Pending", "Confirmed"].includes(item.status) && (
               <>
                 <Button variant="secondary" onClick={() => setConfirmOpen(true)}>Cancel appointment</Button>
-                <Button variant="ghost" onClick={() => { setNewDate(item.appointment_date); setNewTime(item.appointment_time.slice(0, 5)); setReason(""); setRescheduleOpen(true); }}>Reschedule</Button>
+                <Button variant="ghost" onClick={() => { setNewDate(item.appointment_date); setNewTime(""); setReason(""); setRescheduleOpen(true); }}>Reschedule</Button>
               </>
             )}
           </div>
@@ -785,16 +821,36 @@ export function PatientAppointmentDetailPage() {
       <ConfirmDialog
         open={rescheduleOpen}
         title="Reschedule appointment"
-        description="Choose a new available date and time. The change is recorded in the appointment audit timeline."
-        confirmLabel="Save new time"
+        description="Choose a new available date and time. Your doctor must accept the new request before it is confirmed."
+        confirmLabel="Send reschedule request"
         busy={reschedule.isPending}
         confirmDisabled={!newDate || !newTime}
         onCancel={() => setRescheduleOpen(false)}
         onConfirm={() => reschedule.mutate()}
       >
-        <div className="form-grid two-column dialog-inline-field">
-          <FormField label="New date" type="date" min={new Date().toISOString().slice(0, 10)} value={newDate} onChange={(event) => setNewDate(event.target.value)} required />
-          <FormField label="New time" type="time" value={newTime} onChange={(event) => setNewTime(event.target.value)} required />
+        <div className="dialog-inline-field">
+          <FormField
+            label="New date"
+            type="date"
+            min={new Date().toISOString().slice(0, 10)}
+            value={newDate}
+            onChange={(event) => {
+              setNewDate(event.target.value);
+              setNewTime("");
+            }}
+            required
+          />
+          {newDate ? (
+            <AvailableSlots
+              doctor={item.doctor}
+              date={newDate}
+              value={newTime}
+              onChange={setNewTime}
+              heading="Doctor’s available times"
+              emptyDescription="The doctor has no unbooked availability on this date. Choose another date."
+            />
+          ) : null}
+          <p className="text-secondary">Only times configured by the doctor and not already booked are shown.</p>
         </div>
         <TextAreaField label="Reason (optional)" value={reason} onChange={(event) => setReason(event.target.value)} />
         {reschedule.isError && <ErrorState error={reschedule.error} />}

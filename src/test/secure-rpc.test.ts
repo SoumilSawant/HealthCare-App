@@ -66,12 +66,18 @@ describe("secure portal RPC contracts", () => {
   it("uses guarded status and reschedule transitions", async () => {
     await appointmentsApi.confirm("APT-1");
     await appointmentsApi.complete("APT-1");
+    await appointmentsApi.reject("APT-1", "Requested time no longer works");
     await appointmentsApi.reschedule("APT-1", "2026-09-01", "11:30", "Patient request");
     const bodies = vi.mocked(fetch).mock.calls
       .filter(([url]) => String(url).includes("soulplace.api."))
       .map(([, options]) => JSON.parse(String(options?.body)));
     expect(bodies).toContainEqual({ name: "APT-1", status: "Confirmed" });
     expect(bodies).toContainEqual({ name: "APT-1", status: "Completed" });
+    expect(bodies).toContainEqual({
+      name: "APT-1",
+      reason: "Requested time no longer works",
+      status: "Cancelled"
+    });
     expect(bodies).toContainEqual({
       name: "APT-1",
       appointment_date: "2026-09-01",

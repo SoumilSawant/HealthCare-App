@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  AUTH_EXPIRED_EVENT,
   ApiError,
   clearSessionTokens,
   listRecords,
@@ -88,6 +89,55 @@ describe("Frappe HTTP client", () => {
         message: "Appointment overlaps another slot",
         details: ["Appointment overlaps another slot", "Choose another time"]
       } satisfies Partial<ApiError>);
+  });
+
+  it("treats Frappe's guest-only permission response as an expired session", async () => {
+    const expired = vi.fn();
+    window.addEventListener(AUTH_EXPIRED_EVENT, expired, { once: true });
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          _server_messages: JSON.stringify([
+            JSON.stringify({
+              message:
+                "You are not permitted to access this resource. Login to access Function <strong>soulplace.api.list_portal_appointments</strong> is not whitelisted."
+            })
+          ])
+        }),
+        { status: 403, statusText: "Forbidden" }
+      )
+    );
+
+    await expect(request("/api/method/soulplace.api.list_portal_appointments"))
+      .rejects.toMatchObject({
+        status: 403,
+        code: "AUTHENTICATION",
+        message: "Your session expired. Please sign in again."
+      } satisfies Partial<ApiError>);
+    expect(expired).toHaveBeenCalledOnce();
+  });
+
+  it("removes server HTML from permission errors without logging the user out", async () => {
+    const expired = vi.fn();
+    window.addEventListener(AUTH_EXPIRED_EVENT, expired, { once: true });
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          _server_messages: JSON.stringify([
+            JSON.stringify({ message: "Insufficient Permission for <strong>Doctor</strong>" })
+          ])
+        }),
+        { status: 403, statusText: "Forbidden" }
+      )
+    );
+
+    await expect(request("/api/method/soulplace.api.list_admin_doctors"))
+      .rejects.toMatchObject({
+        code: "PERMISSION",
+        message: "Insufficient Permission for Doctor"
+      } satisfies Partial<ApiError>);
+    expect(expired).not.toHaveBeenCalled();
+    window.removeEventListener(AUTH_EXPIRED_EVENT, expired);
   });
 
   it("normalizes network failures without leaking implementation details", async () => {

@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import {
   DataTable,
@@ -30,6 +31,29 @@ describe("shared UI behavior", () => {
       .toHaveAttribute("aria-modal", "true");
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("keeps focus in a dialog field while controlled text changes", async () => {
+    function ControlledDialog() {
+      const [reason, setReason] = useState("");
+      return (
+        <Modal open title="Decline this request?" onClose={() => undefined}>
+          <textarea
+            aria-label="Reason for declining"
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        </Modal>
+      );
+    }
+
+    render(<ControlledDialog />);
+    const reason = screen.getByRole("textbox", { name: "Reason for declining" });
+    reason.focus();
+    fireEvent.change(reason, { target: { value: "Not available" } });
+
+    await waitFor(() => expect(reason).toHaveFocus());
+    expect(reason).toHaveValue("Not available");
   });
 
   it("sorts data tables in both directions", () => {

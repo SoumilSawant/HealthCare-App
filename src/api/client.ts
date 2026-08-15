@@ -21,6 +21,8 @@ interface FrappeEnvelope<T> {
   _server_messages?: string;
 }
 
+export const AUTH_EXPIRED_EVENT = "soulplace:auth-expired";
+
 const configuredUrl = import.meta.env.VITE_FRAPPE_URL?.replace(/\/$/, "");
 export const FRAPPE_BASE_URL = configuredUrl || "";
 
@@ -38,6 +40,19 @@ export class ApiError extends Error implements ApiErrorShape {
   }
 }
 
+function serverMessageToText(value: string): string {
+  return value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function decodeServerMessages(raw?: string): string[] {
   if (!raw) return [];
   try {
@@ -45,14 +60,23 @@ function decodeServerMessages(raw?: string): string[] {
     return outer.map((item) => {
       try {
         const parsed = JSON.parse(item) as { message?: string };
-        return parsed.message ?? item;
+        return serverMessageToText(parsed.message ?? item);
       } catch {
-        return item;
+        return serverMessageToText(item);
       }
     });
   } catch {
-    return [raw];
+    return [serverMessageToText(raw)];
   }
+}
+
+function isExpiredSession(status: number, messages: string[]) {
+  if (status === 401) return true;
+  if (status !== 403) return false;
+  return messages.some((message) => {
+    const normalized = message.toLowerCase();
+    return normalized.includes("login to access") && normalized.includes("not whitelisted");
+  });
 }
 
 export function normalizeApiError(error: unknown, status = 0): ApiError {
@@ -150,15 +174,20 @@ export async function request<T>(
 
     if (!response.ok) {
       const details = decodeServerMessages(envelope._server_messages);
+      const sessionExpired = isExpiredSession(response.status, details);
+      if (sessionExpired) {
+        clearSessionTokens();
+        window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+      }
       throw new ApiError({
         message:
-          details[0] ||
-          envelope.exception ||
+          (sessionExpired ? "Your session expired. Please sign in again." : details[0]) ||
+          (envelope.exception ? serverMessageToText(envelope.exception) : "") ||
           response.statusText ||
           "Frappe request failed.",
         status: response.status,
         code:
-          response.status === 401
+          sessionExpired
             ? "AUTHENTICATION"
             : response.status === 403
               ? "PERMISSION"

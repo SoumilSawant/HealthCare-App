@@ -153,7 +153,7 @@ export function DoctorRequestsPage() {
     }
   });
   const decline = useMutation({
-    mutationFn: () => appointmentsApi.cancel(declineTarget?.name || "", reason),
+    mutationFn: () => appointmentsApi.reject(declineTarget?.name || "", reason),
     onSuccess: () => {
       toast.notify("Appointment request declined.");
       setDeclineTarget(undefined);
@@ -230,6 +230,8 @@ export function DoctorAppointmentDetailPage() {
   const { appointmentId } = useParams();
   const toast = useToast();
   const queryClient = useQueryClient();
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
   const appointment = useQuery({ queryKey: ["appointment", appointmentId], queryFn: () => appointmentsApi.get(appointmentId || ""), enabled: Boolean(appointmentId) });
   const patient = useQuery({ queryKey: ["patient", appointment.data?.patient], queryFn: () => patientsApi.get(appointment.data?.patient || ""), enabled: Boolean(appointment.data?.patient) });
   const session = useQuery({ queryKey: ["teleconsult", appointmentId], queryFn: () => teleconsultApi.list({ filters: [["appointment", "=", appointmentId || ""]], fields: ["*"], limitPageLength: 1 }), enabled: Boolean(appointment.data?.is_teleconsult) });
@@ -237,6 +239,16 @@ export function DoctorAppointmentDetailPage() {
     mutationFn: (status: "Confirmed" | "Completed") => status === "Confirmed" ? appointmentsApi.confirm(appointmentId || "") : appointmentsApi.complete(appointmentId || ""),
     onSuccess: (updated, status) => {
       toast.notify(`Appointment marked ${status.toLowerCase()}.`);
+      void syncAppointmentCache(queryClient, updated);
+    },
+    onError: (error) => toast.notify(normalizeApiError(error).message)
+  });
+  const rejectMutation = useMutation({
+    mutationFn: () => appointmentsApi.reject(appointmentId || "", rejectReason),
+    onSuccess: (updated) => {
+      toast.notify("Appointment request declined. The patient has been asked to book a new appointment.");
+      setRejectOpen(false);
+      setRejectReason("");
       void syncAppointmentCache(queryClient, updated);
     },
     onError: (error) => toast.notify(normalizeApiError(error).message)
@@ -286,7 +298,12 @@ export function DoctorAppointmentDetailPage() {
           <div className="patient-header"><span className="avatar avatar-profile">{patient.data?.name1?.charAt(0) || "P"}</span><div><p className="eyebrow">Patient</p><h2>{patient.data?.name1 || item.patient}</h2><p>{patient.data ? `${patient.data.age} years · ${patient.data.gender}` : "Loading profile"}</p></div></div>
           <dl className="detail-list"><div><dt>Reason</dt><dd>{item.symptoms || "Not provided"}</dd></div><div><dt>Format</dt><dd>{item.is_teleconsult ? "Teleconsult" : "In-person"}</dd></div><div><dt>Notes</dt><dd>{item.notes || "None"}</dd></div></dl>
           <div className="card-actions">
-            {item.status === "Pending" && <Button disabled={statusMutation.isPending} onClick={() => statusMutation.mutate("Confirmed")}>{statusMutation.isPending ? "Confirming…" : "Confirm appointment"}</Button>}
+            {item.status === "Pending" && (
+              <>
+                <Button disabled={statusMutation.isPending || rejectMutation.isPending} onClick={() => statusMutation.mutate("Confirmed")}>{statusMutation.isPending ? "Confirming…" : "Accept request"}</Button>
+                <Button variant="secondary" disabled={statusMutation.isPending || rejectMutation.isPending} onClick={() => setRejectOpen(true)}>Reject request</Button>
+              </>
+            )}
             {item.status === "Confirmed" && <Button disabled={statusMutation.isPending} onClick={() => statusMutation.mutate("Completed")}>{statusMutation.isPending ? "Updating…" : "Mark completed"}</Button>}
           </div>
         </section>
@@ -296,6 +313,20 @@ export function DoctorAppointmentDetailPage() {
           <p className="text-secondary">Patient records in this workspace are limited to appointments assigned to you.</p>
         </aside>
       </div>
+      <ConfirmDialog
+        open={rejectOpen}
+        title="Reject this appointment request?"
+        description="The appointment will be cancelled and the patient will be asked to create a new appointment. A reason is required."
+        confirmLabel="Reject and cancel"
+        destructive
+        busy={rejectMutation.isPending}
+        confirmDisabled={!rejectReason.trim()}
+        onCancel={() => setRejectOpen(false)}
+        onConfirm={() => rejectMutation.mutate()}
+      >
+        <TextAreaField label="Reason for rejecting" value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} required />
+        {rejectMutation.isError && <ErrorState error={rejectMutation.error} />}
+      </ConfirmDialog>
     </>
   );
 }
